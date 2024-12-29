@@ -1,0 +1,29 @@
+/* Base layout styles */
+.min-h-screen {
+  min-height: 100vh;
+}
+
+.bg-background {
+  background-color: var(--background);
+}
+
+.font-sans {
+  font-family: var(--font-sans);
+}
+
+.antialiased {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Dark mode */
+:root[class~="dark"] {
+  --background: #09090b;
+  --foreground: #fafafa;
+}
+
+/* Light mode */
+:root {
+  --background: #fafafa;
+  --foreground: #09090b;
+}
