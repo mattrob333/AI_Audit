@@ -36,7 +36,7 @@ export default function Step4Page() {
     if (!timeline) return null
     return (
       <div className="space-y-4">
-        {Object.entries(timeline).map(([phase, description]) => (
+        {(Object.entries(timeline) as [string, string][]).map(([phase, description]) => (
           <div key={phase} className="space-y-2">
             <h3 className="font-semibold">{formatTitle(phase)}</h3>
             <p>{description}</p>
