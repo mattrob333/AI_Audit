@@ -37,10 +37,10 @@ export default function Step4Page() {
   const renderTimeline = (timeline: Timeline) => {
     return (
       <div className="space-y-4">
-        {Object.entries(timeline).map(([phase, description]) => (
+        {Object.entries(timeline).map(([phase, description]: [string, string]) => (
           <div key={phase} className="space-y-2">
             <h3 className="font-semibold">{formatTitle(phase)}</h3>
-            <p>{description}</p>
+            <p>{String(description)}</p>
           </div>
         ))}
       </div>
