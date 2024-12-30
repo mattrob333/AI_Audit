@@ -14,7 +14,8 @@ export async function POST(request: Request) {
 
     const questions = await generateQuestions(businessDetails, teamDetails);
     
-    return NextResponse.json({ questions });
+    // Return questions wrapped in an object with a questions property
+    return NextResponse.json({ questions: questions });
   } catch (error) {
     console.error('Error generating questions:', error);
     return NextResponse.json(

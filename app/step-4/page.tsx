@@ -3,9 +3,6 @@
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { TooltipProvider } from '@/components/ui/tooltip'
-import { SidebarProvider } from '@/components/ui/sidebar'
-import { MainNav } from '@/components/main-nav'
 import { ProgressSteps } from '@/components/progress-steps'
 import { HelpGuide } from '@/components/help-guide'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
@@ -20,6 +17,27 @@ export default function Step4Page() {
   const [overview, setOverview] = React.useState<any>(null)
   const [expandedSections, setExpandedSections] = React.useState<string[]>([])
   const [hasChanges, setHasChanges] = React.useState(false)
+
+  const formatTitle = (title: string) => {
+    return title
+      .split(/(?=[A-Z])|_/)
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ')
+  }
+
+  const renderTimeline = (timeline: any) => {
+    if (!timeline) return null
+    return (
+      <div className="space-y-4">
+        {Object.entries(timeline).map(([phase, description]) => (
+          <div key={phase} className="space-y-2">
+            <h3 className="font-semibold">{formatTitle(phase)}</h3>
+            <p>{description}</p>
+          </div>
+        ))}
+      </div>
+    )
+  }
 
   const generateOverview = async () => {
     try {
@@ -48,8 +66,8 @@ export default function Step4Page() {
 
       const data = await response.json()
       setOverview(data)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to generate overview')
+    } catch (err: any) {
+      setError(err.message || 'Failed to generate overview')
     } finally {
       setLoading(false)
     }
@@ -59,177 +77,80 @@ export default function Step4Page() {
     generateOverview()
   }, [])
 
-  const toggleSection = (sectionId: string) => {
-    setExpandedSections(prev => 
-      prev.includes(sectionId)
-        ? prev.filter(id => id !== sectionId)
-        : [...prev, sectionId]
-    )
-  }
-
-  const handleSaveSection = async (sectionId: string, content: any) => {
-    setOverview((prev: Record<string, any>) => ({
-      ...prev,
-      [sectionId]: content
-    }))
-    setHasChanges(true)
-
-    // Save to localStorage to persist changes
-    const updatedOverview = {
-      ...overview,
-      [sectionId]: content
-    }
-    localStorage.setItem('aiPlanOverview', JSON.stringify(updatedOverview))
-  }
-
-  const handleContinue = async () => {
-    try {
-      // Save final state before proceeding
-      if (hasChanges) {
-        const response = await fetch('/api/save-overview', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ overview }),
-        })
-
-        if (!response.ok) {
-          throw new Error('Failed to save changes')
-        }
-      }
-
-      router.push('/step-5')
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save changes')
-    }
+  const handleNext = () => {
+    router.push('/step-5')
   }
 
   return (
-    <TooltipProvider>
-      <SidebarProvider>
-        <div className="flex min-h-screen bg-background">
-          <MainNav />
-          <div className="flex-1">
-            <ProgressSteps currentStep={4} />
-            <div className="px-4 lg:px-8">
-              <main className="mr-80">
-                <div className="max-w-4xl py-8">
-                  <h1 className="text-4xl font-bold tracking-tight mb-2">
-                    AI Integration Plan Overview
-                  </h1>
-                  <p className="text-muted-foreground mb-8">
-                    Review and refine your AI integration plan before finalizing. You can edit any details or add missing information.
-                  </p>
-
-                  {error && (
-                    <Alert variant="destructive" className="mb-6">
-                      <AlertDescription className="flex items-center justify-between">
-                        <span>{error}</span>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={generateOverview}
-                          disabled={loading}
-                        >
-                          Try Again
-                        </Button>
-                      </AlertDescription>
-                    </Alert>
-                  )}
-
-                  {loading ? (
-                    <div className="flex flex-col items-center justify-center py-12">
-                      <LoadingSpinner />
-                      <p className="mt-4 text-lg text-muted-foreground">
-                        Analyzing your business and generating AI integration plan...
-                      </p>
-                    </div>
-                  ) : overview && (
-                    <div className="space-y-6">
-                      <CollapsibleSection
-                        title="Business Overview"
-                        content={overview.businessOverview}
-                        sectionId="businessOverview"
-                        isExpanded={expandedSections.includes('businessOverview')}
-                        onToggle={toggleSection}
-                        onSave={handleSaveSection}
-                      />
-                      <CollapsibleSection
-                        title="Key Challenges"
-                        content={overview.keyChallenges}
-                        sectionId="keyChallenges"
-                        isExpanded={expandedSections.includes('keyChallenges')}
-                        onToggle={toggleSection}
-                        onSave={handleSaveSection}
-                      />
-                      <CollapsibleSection
-                        title="Strengths"
-                        content={overview.strengths}
-                        sectionId="strengths"
-                        isExpanded={expandedSections.includes('strengths')}
-                        onToggle={toggleSection}
-                        onSave={handleSaveSection}
-                      />
-                      <CollapsibleSection
-                        title="Integration Opportunities"
-                        content={overview.integrationOpportunities}
-                        sectionId="integrationOpportunities"
-                        isExpanded={expandedSections.includes('integrationOpportunities')}
-                        onToggle={toggleSection}
-                        onSave={handleSaveSection}
-                      />
-                      <CollapsibleSection
-                        title="Implementation Considerations"
-                        content={overview.implementationConsiderations}
-                        sectionId="implementationConsiderations"
-                        isExpanded={expandedSections.includes('implementationConsiderations')}
-                        onToggle={toggleSection}
-                        onSave={handleSaveSection}
-                      />
-                      <CollapsibleSection
-                        title="Timeline"
-                        content={overview.timeline}
-                        sectionId="timeline"
-                        isExpanded={expandedSections.includes('timeline')}
-                        onToggle={toggleSection}
-                        onSave={handleSaveSection}
-                      />
-                      <CollapsibleSection
-                        title="Training Needs"
-                        content={overview.trainingNeeds}
-                        sectionId="trainingNeeds"
-                        isExpanded={expandedSections.includes('trainingNeeds')}
-                        onToggle={toggleSection}
-                        onSave={handleSaveSection}
-                      />
-                      <CollapsibleSection
-                        title="Compliance & Security"
-                        content={overview.complianceAndSecurity}
-                        sectionId="complianceAndSecurity"
-                        isExpanded={expandedSections.includes('complianceAndSecurity')}
-                        onToggle={toggleSection}
-                        onSave={handleSaveSection}
-                      />
-                      
-                      <div className="flex justify-end space-x-4 mt-8">
-                        <Button variant="outline" onClick={() => router.push('/step-3')}>
-                          Previous Step
-                        </Button>
-                        <Button 
-                          onClick={handleContinue}
-                          disabled={loading}
-                        >
-                          {hasChanges ? 'Save & Continue' : 'Continue'}
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </main>
-              <HelpGuide expanded={true} />
+    <div className="flex flex-col min-h-screen">
+      <div className="sticky top-0 z-40 bg-background">
+        <ProgressSteps currentStep={4} />
+      </div>
+      <div className="flex-1 px-4 lg:px-8 py-6">
+        <div className="mr-80">
+          <div className="max-w-3xl">
+            <div className="mb-12">
+              <h1 className="mb-4 text-4xl font-bold tracking-tight">
+                Integration Overview
+              </h1>
+              <p className="text-lg text-muted-foreground">
+                Review your personalized AI integration plan based on your responses.
+              </p>
             </div>
+
+            {error && (
+              <Alert variant="destructive" className="mb-6">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
+            {loading ? (
+              <div className="flex justify-center py-12">
+                <LoadingSpinner />
+              </div>
+            ) : overview ? (
+              <>
+                {Object.entries(overview).map(([section, content]: [string, any]) => {
+                  const formattedTitle = formatTitle(section)
+                  
+                  return (
+                    <CollapsibleSection
+                      key={section}
+                      title={formattedTitle}
+                      defaultExpanded={true}
+                    >
+                      <div className="prose prose-invert max-w-none">
+                        {section === 'timeline' ? (
+                          renderTimeline(content)
+                        ) : typeof content === 'string' ? (
+                          <div dangerouslySetInnerHTML={{ __html: content }} />
+                        ) : Array.isArray(content) ? (
+                          <ul className="list-disc pl-6 space-y-2">
+                            {content.map((item, index) => (
+                              <li key={index}>{item}</li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <pre className="whitespace-pre-wrap">
+                            {JSON.stringify(content, null, 2)}
+                          </pre>
+                        )}
+                      </div>
+                    </CollapsibleSection>
+                  )
+                })}
+                
+                <div className="mt-8 flex justify-end">
+                  <Button onClick={handleNext}>
+                    Continue to Documents
+                  </Button>
+                </div>
+              </>
+            ) : null}
           </div>
         </div>
-      </SidebarProvider>
-    </TooltipProvider>
+        <HelpGuide expanded={true} />
+      </div>
+    </div>
   )
 }

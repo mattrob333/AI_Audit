@@ -2,9 +2,6 @@
 
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { TooltipProvider } from '@/components/ui/tooltip'
-import { SidebarProvider } from '@/components/ui/sidebar'
-import { MainNav } from '@/components/main-nav'
 import { ProgressSteps } from '@/components/progress-steps'
 import { HelpGuide } from '@/components/help-guide'
 import { QuestionForm } from '@/components/question-form'
@@ -26,6 +23,9 @@ export default function Step3Page() {
         const businessDetails = JSON.parse(localStorage.getItem('businessDetails') || '{}')
         const teamDetails = JSON.parse(localStorage.getItem('teamDetails') || '{}')
 
+        console.log('Business Details:', businessDetails)
+        console.log('Team Details:', teamDetails)
+
         if (!businessDetails.businessName || !businessDetails.description || !teamDetails) {
           setError('Please complete the previous steps first')
           return
@@ -43,6 +43,8 @@ export default function Step3Page() {
         }
 
         const data = await response.json()
+        console.log('API Response:', data)
+
         if (data.error) {
           throw new Error(data.error)
         }
@@ -50,15 +52,18 @@ export default function Step3Page() {
         if (!data.questions || !Array.isArray(data.questions)) {
           throw new Error('Invalid response format')
         }
-        
-        setQuestions(data.questions.map((q: string, i: number) => ({
-          id: i + 1,
-          text: q,
+
+        const formattedQuestions = data.questions.map((text: string, index: number) => ({
+          id: index + 1,
+          text,
           answer: '',
           isSkipped: false
-        })))
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to generate questions')
+        }))
+
+        setQuestions(formattedQuestions)
+      } catch (err: any) {
+        console.error('Error details:', err)
+        setError(err.message || 'Failed to generate questions')
       } finally {
         setLoading(false)
       }
@@ -67,42 +72,45 @@ export default function Step3Page() {
     generateQuestions()
   }, [])
 
-  const handleSubmit = async (questions: any[]) => {
-    localStorage.setItem('auditAnswers', JSON.stringify(questions))
+  const handleSubmit = async (answers: any[]) => {
+    localStorage.setItem('auditAnswers', JSON.stringify(answers))
     router.push('/step-4')
   }
 
   return (
-    <TooltipProvider>
-      <SidebarProvider>
-        <div className="flex min-h-screen">
-          <MainNav />
-          <div className="flex-1 flex flex-col">
-            <ProgressSteps currentStep={3} />
-            <div className="flex-1 px-4 lg:pl-[120px] lg:pr-8">
-              <div className="mr-80 ml-40">
-                <h1 className="text-3xl font-semibold tracking-tight mb-2">Complete Your Company Audit</h1>
-                <p className="text-muted-foreground mb-8">
-                  Answer these questions to help us tailor your AI integration plan.
-                </p>
-
-                {error && (
-                  <Alert variant="destructive" className="mb-4">
-                    <AlertDescription>{error}</AlertDescription>
-                  </Alert>
-                )}
-
-                {loading ? (
-                  <LoadingSpinner />
-                ) : (
-                  <QuestionForm questions={questions} onSubmit={handleSubmit} />
-                )}
-              </div>
-              <HelpGuide expanded={true} />
+    <div className="flex flex-col min-h-screen">
+      <div className="sticky top-0 z-40 bg-background">
+        <ProgressSteps currentStep={3} />
+      </div>
+      <div className="flex-1 px-4 lg:px-8 py-6">
+        <div className="mr-80">
+          <div className="max-w-3xl">
+            <div className="mb-12">
+              <h1 className="mb-4 text-4xl font-bold tracking-tight">
+                Company Audit
+              </h1>
+              <p className="text-lg text-muted-foreground">
+                Answer these questions to help us tailor your AI integration plan.
+              </p>
             </div>
+
+            {error && (
+              <Alert variant="destructive" className="mb-6">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
+            {loading ? (
+              <div className="flex justify-center py-12">
+                <LoadingSpinner />
+              </div>
+            ) : (
+              <QuestionForm questions={questions} onSubmit={handleSubmit} />
+            )}
           </div>
         </div>
-      </SidebarProvider>
-    </TooltipProvider>
+        <HelpGuide expanded={true} />
+      </div>
+    </div>
   )
 }

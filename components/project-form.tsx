@@ -18,6 +18,7 @@ const suggestions = ['Industry & Market', 'Existing Processes', 'Software / Tool
 export function ProjectForm({ onNext }: { onNext: () => void }) {
   const [description, setDescription] = React.useState('')
   const [businessName, setBusinessName] = React.useState('')
+  const [businessUrl, setBusinessUrl] = React.useState('')
   const [enhancing, setEnhancing] = React.useState(false)
 
   const addSuggestion = (suggestion: string) => {
@@ -59,6 +60,7 @@ ${newText}` : newText
     e.preventDefault()
     const businessDetails = {
       businessName,
+      businessUrl,
       description
     }
     localStorage.setItem('businessDetails', JSON.stringify(businessDetails))
@@ -85,6 +87,17 @@ ${newText}` : newText
             onChange={(e) => setBusinessName(e.target.value)}
             placeholder="e.g., Acme Logistics Inc. or Tech Solutions LLC"
             required
+          />
+        </div>
+
+        <div className="space-y-4">
+          <Label htmlFor="businessUrl" className="text-base">Business Website or LinkedIn URL</Label>
+          <Input
+            id="businessUrl"
+            value={businessUrl}
+            onChange={(e) => setBusinessUrl(e.target.value)}
+            placeholder="e.g., https://www.example.com or https://www.linkedin.com/company/example"
+            type="url"
           />
         </div>
 

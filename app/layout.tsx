@@ -2,6 +2,8 @@ import '@/styles/globals.css'
 import { Inter } from 'next/font/google'
 import { cn } from '@/lib/utils'
 import { MainNav } from '@/components/main-nav'
+import { SidebarProvider } from '@/components/ui/sidebar'
+import { TooltipProvider } from '@/components/ui/tooltip'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -24,14 +26,18 @@ export default function RootLayout({
           inter.className
         )}
       >
-        <div className="relative flex min-h-screen">
-          <div className="fixed inset-y-0 z-50">
-            <MainNav />
-          </div>
-          <main className="flex-1 ml-[250px]">
-            {children}
-          </main>
-        </div>
+        <TooltipProvider>
+          <SidebarProvider>
+            <div className="relative flex min-h-screen">
+              <div className="fixed inset-y-0 z-50">
+                <MainNav />
+              </div>
+              <main className="flex-1 ml-[250px]">
+                {children}
+              </main>
+            </div>
+          </SidebarProvider>
+        </TooltipProvider>
       </body>
     </html>
   )

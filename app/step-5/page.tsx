@@ -2,24 +2,20 @@
 
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
-import { TooltipProvider } from '@/components/ui/tooltip'
-import { SidebarProvider } from '@/components/ui/sidebar'
-import { MainNav } from '@/components/main-nav'
 import { ProgressSteps } from '@/components/progress-steps'
 import { DocumentGenerator } from '@/components/document-generator'
 
 export default function Step5Page() {
+  const [selectedDoc, setSelectedDoc] = React.useState('executive_summary')
+
   return (
-    <TooltipProvider>
-      <SidebarProvider>
-        <div className="flex min-h-screen bg-background">
-          <MainNav />
-          <div className="flex-1">
-            <ProgressSteps currentStep={5} />
-            <DocumentGenerator />
-          </div>
-        </div>
-      </SidebarProvider>
-    </TooltipProvider>
+    <div className="flex flex-col min-h-screen">
+      <div className="sticky top-0 z-40 bg-background">
+        <ProgressSteps currentStep={5} />
+      </div>
+      <div className="flex-1 px-4 lg:px-8 py-6">
+        <DocumentGenerator selectedDocument={selectedDoc} />
+      </div>
+    </div>
   )
 }

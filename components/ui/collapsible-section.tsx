@@ -6,23 +6,38 @@ import { Card, CardHeader, CardContent } from './card'
 
 interface CollapsibleSectionProps {
   title: string
-  content: string | string[] | Record<string, string[]>
-  sectionId: string
-  isExpanded: boolean
-  onToggle: (sectionId: string) => void
+  content?: string | string[] | Record<string, string[]>
+  children?: React.ReactNode
+  sectionId?: string
+  isExpanded?: boolean
+  defaultExpanded?: boolean
+  onToggle?: (sectionId: string) => void
   onSave?: (sectionId: string, content: any) => void
 }
 
 export function CollapsibleSection({
   title,
   content,
-  sectionId,
-  isExpanded,
+  children,
+  sectionId = '',
+  isExpanded: controlledIsExpanded,
+  defaultExpanded = false,
   onToggle,
   onSave,
 }: CollapsibleSectionProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editedContent, setEditedContent] = useState(content)
+  const [internalExpanded, setInternalExpanded] = useState(defaultExpanded)
+  
+  const isExpanded = controlledIsExpanded ?? internalExpanded
+
+  const handleToggle = () => {
+    if (onToggle) {
+      onToggle(sectionId)
+    } else {
+      setInternalExpanded(!internalExpanded)
+    }
+  }
 
   const handleSave = () => {
     onSave?.(sectionId, editedContent)
@@ -30,6 +45,10 @@ export function CollapsibleSection({
   }
 
   const renderContent = () => {
+    if (children) {
+      return children
+    }
+
     if (isEditing) {
       return (
         <div className="space-y-4">
@@ -70,7 +89,7 @@ export function CollapsibleSection({
       </ul>
     ) : (
       <ul className="list-disc pl-6 space-y-2">
-        {Object.entries(content).map(([phase, tasks]) => (
+        {Object.entries(content || {}).map(([phase, tasks]) => (
           <li key={phase}>
             <strong>{phase}:</strong>
             <ul className="list-disc pl-6 space-y-1 mt-1">
@@ -88,7 +107,7 @@ export function CollapsibleSection({
     <Card className="mb-4">
       <CardHeader 
         className="cursor-pointer" 
-        onClick={() => onToggle(sectionId)}
+        onClick={handleToggle}
       >
         <div className="flex items-center justify-between">
           <h3 className="text-xl font-semibold">{title}</h3>
@@ -106,14 +125,18 @@ export function CollapsibleSection({
               </Button>
             )}
             {isExpanded ? (
-              <ChevronUp className="h-5 w-5" />
+              <ChevronUp className="h-6 w-6" />
             ) : (
-              <ChevronDown className="h-5 w-5" />
+              <ChevronDown className="h-6 w-6" />
             )}
           </div>
         </div>
       </CardHeader>
-      {isExpanded && <CardContent>{renderContent()}</CardContent>}
+      {isExpanded && (
+        <CardContent>
+          {renderContent()}
+        </CardContent>
+      )}
     </Card>
   )
 }
