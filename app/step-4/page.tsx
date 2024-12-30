@@ -34,17 +34,13 @@ export default function Step4Page() {
       .join(' ')
   }
 
-  const renderTimeline = (timeline: Timeline) => {
-    return (
-      <div className="space-y-4">
-        {Object.entries(timeline).map(([phase, description]: [string, string]) => (
-          <div key={phase} className="space-y-2">
-            <h3 className="font-semibold">{formatTitle(phase)}</h3>
-            <p>{String(description)}</p>
-          </div>
-        ))}
+  const renderTimelineContent = (timeline: Timeline) => {
+    return Object.entries(timeline).map(([phase, description]) => (
+      <div key={phase} className="space-y-2">
+        <h3 className="font-semibold">{formatTitle(phase)}</h3>
+        <p>{description}</p>
       </div>
-    )
+    ))
   }
 
   const validateOverviewData = (data: any): data is OverviewData => {
@@ -139,6 +135,27 @@ export default function Step4Page() {
                 {Object.entries(overview).map(([section, content]) => {
                   const formattedTitle = formatTitle(section)
                   
+                  let renderedContent: React.ReactNode = null;
+                  if (section === 'timeline' && content && typeof content === 'object') {
+                    renderedContent = renderTimelineContent(content as Timeline);
+                  } else if (typeof content === 'string') {
+                    renderedContent = <div dangerouslySetInnerHTML={{ __html: content }} />;
+                  } else if (Array.isArray(content)) {
+                    renderedContent = (
+                      <ul className="list-disc pl-6 space-y-2">
+                        {content.map((item, index) => (
+                          <li key={index}>{typeof item === 'string' ? item : JSON.stringify(item)}</li>
+                        ))}
+                      </ul>
+                    );
+                  } else {
+                    renderedContent = (
+                      <pre className="whitespace-pre-wrap">
+                        {JSON.stringify(content, null, 2)}
+                      </pre>
+                    );
+                  }
+                  
                   return (
                     <CollapsibleSection
                       key={section}
@@ -146,21 +163,7 @@ export default function Step4Page() {
                       defaultExpanded={true}
                     >
                       <div className="prose prose-invert max-w-none">
-                        {section === 'timeline' && content && typeof content === 'object' ? (
-                          renderTimeline(content as Timeline)
-                        ) : typeof content === 'string' ? (
-                          <div dangerouslySetInnerHTML={{ __html: content }} />
-                        ) : Array.isArray(content) ? (
-                          <ul className="list-disc pl-6 space-y-2">
-                            {content.map((item, index) => (
-                              <li key={index}>{typeof item === 'string' ? item : JSON.stringify(item)}</li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <pre className="whitespace-pre-wrap">
-                            {JSON.stringify(content, null, 2)}
-                          </pre>
-                        )}
+                        {renderedContent}
                       </div>
                     </CollapsibleSection>
                   )
