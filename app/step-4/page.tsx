@@ -14,14 +14,16 @@ interface Timeline {
   [phase: string]: string;
 }
 
+interface OverviewData {
+  timeline?: Timeline;
+  [key: string]: Timeline | string[] | string | undefined;
+}
+
 export default function Step4Page() {
   const router = useRouter()
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState('')
-  const [overview, setOverview] = React.useState<{
-    timeline?: Timeline;
-    [key: string]: any;
-  } | null>(null)
+  const [overview, setOverview] = React.useState<OverviewData | null>(null)
   const [expandedSections, setExpandedSections] = React.useState<string[]>([])
   const [hasChanges, setHasChanges] = React.useState(false)
 
@@ -32,11 +34,10 @@ export default function Step4Page() {
       .join(' ')
   }
 
-  const renderTimeline = (timeline: Timeline | undefined) => {
-    if (!timeline) return null
+  const renderTimeline = (timeline: Timeline) => {
     return (
       <div className="space-y-4">
-        {(Object.entries(timeline) as [string, string][]).map(([phase, description]) => (
+        {Object.entries(timeline).map(([phase, description]) => (
           <div key={phase} className="space-y-2">
             <h3 className="font-semibold">{formatTitle(phase)}</h3>
             <p>{description}</p>
@@ -44,6 +45,19 @@ export default function Step4Page() {
         ))}
       </div>
     )
+  }
+
+  const validateOverviewData = (data: any): data is OverviewData => {
+    if (typeof data !== 'object' || data === null) return false;
+    
+    if (data.timeline) {
+      if (typeof data.timeline !== 'object') return false;
+      for (const [_, value] of Object.entries(data.timeline)) {
+        if (typeof value !== 'string') return false;
+      }
+    }
+    
+    return true;
   }
 
   const generateOverview = async () => {
@@ -72,6 +86,11 @@ export default function Step4Page() {
       }
 
       const data = await response.json()
+      
+      if (!validateOverviewData(data)) {
+        throw new Error('Invalid overview data structure received from API')
+      }
+      
       setOverview(data)
     } catch (err: any) {
       setError(err.message || 'Failed to generate overview')
@@ -127,14 +146,14 @@ export default function Step4Page() {
                       defaultExpanded={true}
                     >
                       <div className="prose prose-invert max-w-none">
-                        {section === 'timeline' ? (
+                        {section === 'timeline' && content && typeof content === 'object' ? (
                           renderTimeline(content as Timeline)
                         ) : typeof content === 'string' ? (
                           <div dangerouslySetInnerHTML={{ __html: content }} />
                         ) : Array.isArray(content) ? (
                           <ul className="list-disc pl-6 space-y-2">
                             {content.map((item, index) => (
-                              <li key={index}>{item}</li>
+                              <li key={index}>{typeof item === 'string' ? item : JSON.stringify(item)}</li>
                             ))}
                           </ul>
                         ) : (
