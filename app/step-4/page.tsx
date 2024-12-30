@@ -10,11 +10,18 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { CollapsibleSection } from '@/components/ui/collapsible-section'
 import { Pencil, ChevronDown, ChevronUp } from 'lucide-react'
 
+interface Timeline {
+  [phase: string]: string;
+}
+
 export default function Step4Page() {
   const router = useRouter()
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState('')
-  const [overview, setOverview] = React.useState<any>(null)
+  const [overview, setOverview] = React.useState<{
+    timeline?: Timeline;
+    [key: string]: any;
+  } | null>(null)
   const [expandedSections, setExpandedSections] = React.useState<string[]>([])
   const [hasChanges, setHasChanges] = React.useState(false)
 
@@ -25,7 +32,7 @@ export default function Step4Page() {
       .join(' ')
   }
 
-  const renderTimeline = (timeline: any) => {
+  const renderTimeline = (timeline: Timeline | undefined) => {
     if (!timeline) return null
     return (
       <div className="space-y-4">
