@@ -117,7 +117,7 @@ export default function Step4Page() {
               </div>
             ) : overview ? (
               <>
-                {Object.entries(overview).map(([section, content]: [string, any]) => {
+                {Object.entries(overview).map(([section, content]) => {
                   const formattedTitle = formatTitle(section)
                   
                   return (
@@ -128,7 +128,7 @@ export default function Step4Page() {
                     >
                       <div className="prose prose-invert max-w-none">
                         {section === 'timeline' ? (
-                          renderTimeline(content)
+                          renderTimeline(content as Timeline)
                         ) : typeof content === 'string' ? (
                           <div dangerouslySetInnerHTML={{ __html: content }} />
                         ) : Array.isArray(content) ? (
