@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize from 'rehype-sanitize';
@@ -43,23 +43,28 @@ const documentSteps: Array<{
   }
 ];
 
-export function DocumentGenerator() {
-  const [currentDoc, setCurrentDoc] = useState<DocumentType>('executiveSummary');
-  const [generatedDocs, setGeneratedDocs] = useState<Record<DocumentType, string>>({
-    executiveSummary: '',
-    upskilling: '',
-    aiPersonas: '',
-    chatbot: '',
-    automationPlan: ''
-  });
-  const [isGenerating, setIsGenerating] = useState(false);
+export function DocumentGenerator({ selectedDocument }: { selectedDocument?: DocumentType }) {
+  const [currentStep, setCurrentStep] = useState(0);
+  const [documents, setDocuments] = useState<Record<string, string>>({});
+  const [generating, setGenerating] = useState(false);
+  const [currentDocument, setCurrentDocument] = useState<string | null>(null);
+
+  // Update currentStep when selectedDocument changes
+  useEffect(() => {
+    if (selectedDocument) {
+      const stepIndex = documentSteps.findIndex(step => step.id === selectedDocument);
+      if (stepIndex !== -1) {
+        setCurrentStep(stepIndex);
+      }
+    }
+  }, [selectedDocument]);
+
   const [error, setError] = useState<string | null>(null);
 
-  const currentIndex = documentSteps.findIndex(step => step.id === currentDoc);
-  const currentStep = documentSteps[currentIndex];
+  const currentDoc = documentSteps[currentStep].id;
 
   const handleGenerate = async () => {
-    setIsGenerating(true);
+    setGenerating(true);
     setError(null);
     try {
       // Get all the user data from previous steps
@@ -75,22 +80,22 @@ export function DocumentGenerator() {
         overview: aiPlanOverview
       });
       
-      setGeneratedDocs(prev => ({
+      setDocuments(prev => ({
         ...prev,
         [currentDoc]: result
       }));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
-      setIsGenerating(false);
+      setGenerating(false);
     }
   };
 
   const handleDownload = () => {
-    const content = generatedDocs[currentDoc];
+    const content = documents[currentDoc];
     if (!content) return;
 
-    const fileName = `${currentStep.title.toLowerCase().replace(/\s+/g, '-')}.md`;
+    const fileName = `${documentSteps[currentStep].title.toLowerCase().replace(/\s+/g, '-')}.md`;
     const blob = new Blob([content], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -105,7 +110,7 @@ export function DocumentGenerator() {
   const handleDownloadAll = () => {
     const zip = new JSZip();
     
-    Object.entries(generatedDocs).forEach(([docType, content]) => {
+    Object.entries(documents).forEach(([docType, content]) => {
       const step = documentSteps.find(s => s.id === docType);
       if (step) {
         const fileName = `${step.title.toLowerCase().replace(/\s+/g, '-')}.md`;
@@ -126,14 +131,14 @@ export function DocumentGenerator() {
   };
 
   const handleNext = () => {
-    if (currentIndex < documentSteps.length - 1) {
-      setCurrentDoc(documentSteps[currentIndex + 1].id);
+    if (currentStep < documentSteps.length - 1) {
+      setCurrentStep(currentStep + 1);
     }
   };
 
   const handlePrevious = () => {
-    if (currentIndex > 0) {
-      setCurrentDoc(documentSteps[currentIndex - 1].id);
+    if (currentStep > 0) {
+      setCurrentStep(currentStep - 1);
     }
   };
 
@@ -146,17 +151,17 @@ export function DocumentGenerator() {
           {documentSteps.map((step, idx) => (
             <button
               key={step.id}
-              onClick={() => setCurrentDoc(step.id)}
+              onClick={() => setCurrentStep(idx)}
               className={cn(
                 "w-full px-4 py-3 text-left hover:bg-accent/50 flex items-center gap-3",
-                currentDoc === step.id && "bg-accent"
+                currentStep === idx && "bg-accent"
               )}
             >
               <div className={cn(
                 "w-6 h-6 rounded-full border flex items-center justify-center",
-                generatedDocs[step.id] ? "bg-green-500 border-green-500" : "border-muted-foreground"
+                documents[step.id] ? "bg-green-500 border-green-500" : "border-muted-foreground"
               )}>
-                {generatedDocs[step.id] && <Check className="w-4 h-4 text-white" />}
+                {documents[step.id] && <Check className="w-4 h-4 text-white" />}
               </div>
               <div>
                 <div className="font-medium">{step.title}</div>
@@ -170,8 +175,8 @@ export function DocumentGenerator() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
         <div className="flex-1 p-6">
-          <h1 className="text-2xl font-semibold mb-2">{currentStep.title}</h1>
-          <p className="text-muted-foreground mb-6">{currentStep.description}</p>
+          <h1 className="text-2xl font-semibold mb-2">{documentSteps[currentStep].title}</h1>
+          <p className="text-muted-foreground mb-6">{documentSteps[currentStep].description}</p>
 
           {error && (
             <div className="bg-destructive/10 text-destructive p-4 rounded-md mb-4">
@@ -179,7 +184,7 @@ export function DocumentGenerator() {
             </div>
           )}
 
-          {generatedDocs[currentDoc] ? (
+          {documents[currentDoc] ? (
             <ScrollArea className="h-[calc(100vh-15rem)] border rounded-md p-4">
               <div className="prose prose-invert max-w-none">
                 <ReactMarkdown
@@ -200,7 +205,7 @@ export function DocumentGenerator() {
                     ),
                   }}
                 >
-                  {generatedDocs[currentDoc]}
+                  {documents[currentDoc]}
                 </ReactMarkdown>
               </div>
             </ScrollArea>
@@ -209,10 +214,10 @@ export function DocumentGenerator() {
               <Button
                 size="lg"
                 onClick={handleGenerate}
-                disabled={isGenerating}
+                disabled={generating}
               >
                 <FileText className="mr-2 h-4 w-4" />
-                {isGenerating ? 'Generating...' : 'Generate Document'}
+                {generating ? 'Generating...' : 'Generate Document'}
               </Button>
             </div>
           )}
@@ -223,20 +228,20 @@ export function DocumentGenerator() {
           <Button
             variant="outline"
             onClick={handlePrevious}
-            disabled={currentIndex === 0}
+            disabled={currentStep === 0}
           >
             <ChevronLeft className="mr-2 h-4 w-4" />
             Previous Step
           </Button>
 
           <div className="flex gap-2">
-            {generatedDocs[currentDoc] && (
+            {documents[currentDoc] && (
               <>
                 <Button variant="outline" onClick={handleDownload}>
                   <Download className="mr-2 h-4 w-4" />
                   Download Doc
                 </Button>
-                {Object.keys(generatedDocs).length > 1 && (
+                {Object.keys(documents).length > 1 && (
                   <Button variant="outline" onClick={handleDownloadAll}>
                     <Download className="mr-2 h-4 w-4" />
                     Download All
@@ -246,7 +251,7 @@ export function DocumentGenerator() {
             )}
             <Button
               onClick={handleNext}
-              disabled={currentIndex === documentSteps.length - 1 || !generatedDocs[currentDoc]}
+              disabled={currentStep === documentSteps.length - 1 || !documents[currentDoc]}
             >
               Next Step
               <ChevronRight className="ml-2 h-4 w-4" />
