@@ -1,25 +1,23 @@
 'use client'
 
 import * as React from 'react'
-import { Mic, Wand2 } from 'lucide-react'
+import { Mic, Wand2, Search, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { openai } from '@/lib/openai'
 
 const suggestions = ['Industry & Market', 'Existing Processes', 'Software / Tooling', 'Challenges / Goals']
 
 export function ProjectForm({ onNext }: { onNext: () => void }) {
-  const [description, setDescription] = React.useState('')
+  const [description, setDescription] = React.useState<string>('')
   const [businessName, setBusinessName] = React.useState('')
   const [businessUrl, setBusinessUrl] = React.useState('')
   const [enhancing, setEnhancing] = React.useState(false)
+  const [generatingSummary, setGeneratingSummary] = React.useState(false)
 
   const addSuggestion = (suggestion: string) => {
     setDescription(prev => {
@@ -32,7 +30,7 @@ ${newText}` : newText
   }
 
   const enhanceDescription = async () => {
-    if (!description.trim()) return
+    if (!description) return
     
     setEnhancing(true)
     try {
@@ -55,6 +53,39 @@ ${newText}` : newText
       setEnhancing(false)
     }
   }
+
+  const generateSummary = async () => {
+    if (!businessUrl.trim()) return;
+    
+    setGeneratingSummary(true);
+    try {
+      const response = await fetch('https://flowise-jc8z.onrender.com/api/v1/prediction/a4604503-0f4c-4047-925c-419ca43664ba', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          question: `Please research and provide a summary of ${businessUrl}`,
+          url: businessUrl
+        })
+      });
+
+      const result = await response.json();
+      
+      // Wait longer to ensure the full response is generated
+      await new Promise(resolve => setTimeout(resolve, 5000));
+      
+      if (result) {
+        const summaryText = typeof result === 'object' ? result.text || result.answer || result.response || JSON.stringify(result) : result;
+        setDescription(summaryText);
+      }
+    } catch (error) {
+      console.error('Error generating summary:', error);
+      setDescription('Error: Could not generate summary. Please try again.');
+    } finally {
+      setGeneratingSummary(false);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -92,13 +123,36 @@ ${newText}` : newText
 
         <div className="space-y-4">
           <Label htmlFor="businessUrl" className="text-base">Business Website or LinkedIn URL</Label>
-          <Input
-            id="businessUrl"
-            value={businessUrl}
-            onChange={(e) => setBusinessUrl(e.target.value)}
-            placeholder="e.g., https://www.example.com or https://www.linkedin.com/company/example"
-            type="url"
-          />
+          <div className="flex gap-2">
+            <Input
+              id="businessUrl"
+              value={businessUrl}
+              onChange={(e) => setBusinessUrl(e.target.value)}
+              placeholder="e.g., https://www.example.com or https://www.linkedin.com/company/example"
+              type="url"
+              className="flex-1"
+            />
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="icon"
+                  onClick={generateSummary}
+                  disabled={generatingSummary || !businessUrl.trim()}
+                >
+                  {generatingSummary ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Search className="h-4 w-4" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                Generate summary from URL
+              </TooltipContent>
+            </Tooltip>
+          </div>
         </div>
 
         <div className="space-y-4">
@@ -139,7 +193,7 @@ ${newText}` : newText
                     size="icon" 
                     variant="ghost" 
                     type="button"
-                    disabled={enhancing || !description.trim()}
+                    disabled={enhancing || !description}
                     onClick={enhanceDescription}
                   >
                     <Wand2 className={cn("h-4 w-4", enhancing && "animate-pulse")} />
