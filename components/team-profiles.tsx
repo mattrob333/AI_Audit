@@ -75,6 +75,12 @@ const aiSkillOptions = [
   'Problem-Solving'
 ]
 
+type DetailsValue = 
+  | string
+  | string[]
+  | { value: string; label: string }
+  | undefined;
+
 export function TeamProfiles({
   teamMembers: externalTeamMembers = [],
   onTeamMembersChange
@@ -130,7 +136,7 @@ export function TeamProfiles({
     ))
   }
 
-  const updateMemberDetails = (id: string, field: string, value: string | string[]) => {
+  const updateMemberDetails = (id: string, field: string, value: DetailsValue) => {
     setTeamMembers(prev => prev.map(member => 
       member.id === id ? {
         ...member,
@@ -174,23 +180,21 @@ export function TeamProfiles({
                 role,
                 responsibilities,
                 email,
-                inviteStatus: 'not_invited',
+                inviteStatus: 'not_invited' as const,
                 details: {
                   department,
                   reportsTo,
-                  enneagramType: {
+                  enneagramType: enneagramType ? {
                     value: enneagramType,
                     label: enneagramType
-                  }
+                  } : undefined,
+                  aiSkills: []
                 }
               }
             }
             return null
           })
-          .filter((member): member is TeamMember => {
-            if (!member) return false;
-            return true;
-          })
+          .filter(Boolean) as TeamMember[]
 
         // Replace existing team members instead of appending
         setTeamMembers(rows)
@@ -321,12 +325,21 @@ export function TeamProfiles({
                       <Select
                         value={member.details?.enneagramType?.value || ''}
                         onValueChange={(value) => {
+                          if (!value) {
+                            updateMemberDetails(member.id, 'enneagramType', undefined);
+                            return;
+                          }
                           const selectedType = enneagramTypes.find(type => type.value === value);
-                          updateMemberDetails(member.id, 'enneagramType', selectedType || { value, label: value });
+                          if (selectedType) {
+                            updateMemberDetails(member.id, 'enneagramType', {
+                              value: selectedType.value,
+                              label: selectedType.label
+                            });
+                          }
                         }}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="Select your Enneagram type" />
+                          <SelectValue placeholder="Select your Enneagram type (optional)" />
                         </SelectTrigger>
                         <SelectContent>
                           {enneagramTypes.map((type) => (
