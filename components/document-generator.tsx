@@ -10,6 +10,7 @@ import { Button } from './ui/button';
 import { Check, ChevronLeft, ChevronRight, Download, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DocumentType, generateDocument } from '@/lib/documents';
+import { DocumentSteps } from './document-steps';
 
 const documentSteps: Array<{
   id: DocumentType;
@@ -143,37 +144,15 @@ export function DocumentGenerator({ selectedDocument }: { selectedDocument?: Doc
   };
 
   return (
-    <div className="flex h-screen bg-background">
-      {/* Left Sidebar */}
-      <div className="w-72 border-r bg-muted/20">
-        <div className="p-4 font-semibold">Steps</div>
-        <ScrollArea className="h-[calc(100vh-4rem)]">
-          {documentSteps.map((step, idx) => (
-            <button
-              key={step.id}
-              onClick={() => setCurrentStep(idx)}
-              className={cn(
-                "w-full px-4 py-3 text-left hover:bg-accent/50 flex items-center gap-3",
-                currentStep === idx && "bg-accent"
-              )}
-            >
-              <div className={cn(
-                "w-6 h-6 rounded-full border flex items-center justify-center",
-                documents[step.id] ? "bg-green-500 border-green-500" : "border-muted-foreground"
-              )}>
-                {documents[step.id] && <Check className="w-4 h-4 text-white" />}
-              </div>
-              <div>
-                <div className="font-medium">{step.title}</div>
-                <div className="text-sm text-muted-foreground">{step.description}</div>
-              </div>
-            </button>
-          ))}
-        </ScrollArea>
+    <div className="flex flex-col lg:flex-row gap-6">
+      <div className="w-full lg:w-64 shrink-0">
+        <DocumentSteps
+          steps={documentSteps}
+          currentStep={currentStep}
+          onStepClick={setCurrentStep}
+        />
       </div>
-
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 min-w-0">
         <div className="flex-1 p-6">
           <h1 className="text-2xl font-semibold mb-2">{documentSteps[currentStep].title}</h1>
           <p className="text-muted-foreground mb-6">{documentSteps[currentStep].description}</p>

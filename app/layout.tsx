@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils'
 import { MainNav } from '@/components/main-nav'
 import { SidebarProvider } from '@/components/ui/sidebar'
 import { TooltipProvider } from '@/components/ui/tooltip'
+import { CollapsibleHelpGuide } from '@/components/collapsible-help-guide'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -34,6 +35,7 @@ export default function RootLayout({
               </div>
               <main className="flex-1 ml-[250px]">
                 {children}
+                <CollapsibleHelpGuide />
               </main>
             </div>
           </SidebarProvider>

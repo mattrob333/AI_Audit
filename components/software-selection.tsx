@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/dialog'
 
 const popularSoftware = [
+  // Enterprise Software
   { id: 'salesforce', name: 'Salesforce', category: 'CRM' },
   { id: 'hubspot', name: 'HubSpot', category: 'Marketing' },
   { id: 'sap', name: 'SAP', category: 'ERP' },
@@ -32,8 +33,46 @@ const popularSoftware = [
   { id: 'gsuite', name: 'Google Workspace', category: 'Productivity' },
   { id: 'office365', name: 'Microsoft 365', category: 'Productivity' },
   { id: 'jira', name: 'Jira', category: 'Project Management' },
-  { id: 'zendesk', name: 'Zendesk', category: 'Customer Support' },
-  { id: 'asana', name: 'Asana', category: 'Project Management' },
+  { id: 'monday', name: 'Monday.com', category: 'Project Management' },
+  { id: 'asana', name: 'Asana', category: 'Task Management' },
+  { id: 'clickup', name: 'ClickUp', category: 'Team Collaboration' },
+  { id: 'notion', name: 'Notion', category: 'Knowledge Management' },
+  { id: 'airtable', name: 'Airtable', category: 'Database Management' },
+  { id: 'webex', name: 'Webex', category: 'Video Conferencing' },
+  
+  // Business Intelligence
+  { id: 'tableau', name: 'Tableau', category: 'Business Intelligence' },
+  { id: 'powerbi', name: 'Power BI', category: 'Business Intelligence' },
+  { id: 'looker', name: 'Looker', category: 'Business Intelligence' },
+  { id: 'plusai', name: 'Plus AI', category: 'Business Intelligence' },
+
+  // Process Automation
+  { id: 'uipath', name: 'UiPath', category: 'Process Automation' },
+  { id: 'automationanywhere', name: 'Automation Anywhere', category: 'Process Automation' },
+  { id: 'blueprism', name: 'Blue Prism', category: 'Process Automation' },
+  { id: 'bizagi', name: 'Bizagi', category: 'Process Automation' },
+  { id: 'nintex', name: 'Nintex Process Platform', category: 'Process Automation' },
+
+  // Industry-Specific
+  { id: 'creatio', name: 'Creatio', category: 'CRM Automation' },
+  { id: 'sscblueprism', name: 'SS&C Blue Prism', category: 'Enterprise Automation' },
+  { id: 'avoma', name: 'Avoma', category: 'Meeting Intelligence' },
+  { id: 'fireflies', name: 'Fireflies', category: 'Meeting Transcription' },
+  { id: 'suno', name: 'Suno', category: 'AI Music Generation' },
+
+  // HR & Recruitment
+  { id: 'textio', name: 'Textio', category: 'Writing Enhancement' },
+  { id: 'cvviz', name: 'CVViZ', category: 'Resume Screening' },
+  { id: 'paradox', name: 'Paradox', category: 'HR Automation' },
+  { id: 'peoplebox', name: 'Peoplebox', category: 'Employee Experience' },
+
+  // Enterprise Search
+  { id: 'elastic', name: 'Elastic Enterprise Search', category: 'Enterprise Search' },
+  { id: 'watsondiscovery', name: 'IBM Watson Discovery', category: 'Enterprise Search' },
+  { id: 'pinecone', name: 'Pinecone', category: 'Enterprise Search' },
+  { id: 'lucidworks', name: 'Lucidworks Fusion', category: 'Enterprise Search' },
+  { id: 'alphasense', name: 'AlphaSense', category: 'Enterprise Search' },
+  { id: 'qatalog', name: 'Qatalog', category: 'Enterprise Search' }
 ]
 
 export function SoftwareSelection({
@@ -169,4 +208,3 @@ export function SoftwareSelection({
     </Card>
   )
 }
-

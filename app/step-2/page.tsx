@@ -4,28 +4,33 @@ import * as React from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { ProgressSteps } from '@/components/progress-steps'
-import { HelpGuide } from '@/components/help-guide'
-import { TeamSection } from '@/components/team-section'
+import { TeamProfiles } from '@/components/team-profiles'
 import { SoftwareSelection } from '@/components/software-selection'
 import { AIToolsSelection } from '@/components/ai-tools-selection'
 
-type Department = {
-  id: string
-  name: string
-  employees: string
-  responsibilities: string
-  skillLevel: string
+interface TeamMember {
+  id: string;
+  name: string;
+  role: string;
+  responsibilities: string;
+  email: string;
+  inviteStatus: 'not_invited' | 'invited' | 'completed';
+  details?: {
+    department?: string;
+    reportsTo?: string;
+    enneagramType?: string;
+  }
 }
 
 export default function Step2Page() {
   const router = useRouter()
-  const [departments, setDepartments] = React.useState<Department[]>([])
+  const [teamMembers, setTeamMembers] = React.useState<TeamMember[]>([])
   const [selectedSoftware, setSelectedSoftware] = React.useState<string[]>([])
   const [selectedAITools, setSelectedAITools] = React.useState<string[]>([])
 
   const handleNext = () => {
     const teamDetails = {
-      departments,
+      teamMembers,
       currentSoftware: selectedSoftware,
       aiToolsOfInterest: selectedAITools,
     }
@@ -39,8 +44,8 @@ export default function Step2Page() {
         <ProgressSteps currentStep={2} />
       </div>
       <div className="flex-1 px-4 lg:px-8 py-6">
-        <div className="mr-80">
-          <div className="max-w-3xl">
+        <div className="mr-40">
+          <div className="max-w-[1200px]">
             <div className="mb-12">
               <h1 className="mb-4 text-4xl font-bold tracking-tight">
                 Team & Tech Stack
@@ -50,29 +55,32 @@ export default function Step2Page() {
               </p>
             </div>
 
-            <TeamSection
-              departments={departments}
-              onDepartmentsChange={setDepartments}
+            <TeamProfiles
+              teamMembers={teamMembers}
+              onTeamMembersChange={setTeamMembers}
             />
 
-            <SoftwareSelection
-              selected={selectedSoftware}
-              onSelect={setSelectedSoftware}
-            />
+            <div className="mt-12">
+              <SoftwareSelection
+                selected={selectedSoftware}
+                onSelect={setSelectedSoftware}
+              />
+            </div>
 
-            <AIToolsSelection
-              selected={selectedAITools}
-              onSelect={setSelectedAITools}
-            />
+            <div className="mt-12">
+              <AIToolsSelection
+                selected={selectedAITools}
+                onSelect={setSelectedAITools}
+              />
+            </div>
 
-            <div className="mt-8 flex justify-end">
+            <div className="mt-12 flex justify-end">
               <Button onClick={handleNext}>
                 Continue
               </Button>
             </div>
           </div>
         </div>
-        <HelpGuide expanded={true} />
       </div>
     </div>
   )

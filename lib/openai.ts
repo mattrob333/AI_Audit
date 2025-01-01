@@ -11,13 +11,45 @@ const openai = new OpenAI({
 export { openai };
 
 export async function generateQuestions(businessDetails: any, teamDetails: any) {
-  const prompt = `Based on the business, team, roles, software, value props and services offered by this business, create 10 followup questions to extract more information from the user that would be useful in helping them integrate ai into their business. Format the response as a JSON object with a 'questions' array containing exactly 10 strings.
+  const systemPrompt = `You are an AI implementation consultant with expertise in business process optimization and AI integration. Your role is to:
+1. Analyze the organizational structure and reporting relationships
+2. Map how value and information flows through the company
+3. Identify potential bottlenecks and inefficiencies
+4. Understand team members' AI readiness based on their skills
+5. Discover opportunities for AI-powered process optimization
+
+Generate questions that will help uncover:
+- How work flows between team members and departments
+- Where information or value gets stuck or slowed down
+- Which processes could benefit most from AI automation
+- How existing AI skills can be leveraged
+- What additional AI training might be needed
+
+Always return exactly 10 questions in JSON format.`;
+
+  const prompt = `Based on the following business context, generate strategic questions that will help us understand the company's value flows and identify optimization opportunities.
 
 Business Details:
 ${JSON.stringify(businessDetails, null, 2)}
 
-Team Details:
+Team Details (including reporting structure and AI skills):
 ${JSON.stringify(teamDetails, null, 2)}
+
+Focus areas for questions:
+1. Value Flow Analysis:
+   - How does work move between team members?
+   - Where are the handoff points?
+   - What are the key decision points?
+
+2. Process Bottlenecks:
+   - Which processes take the longest?
+   - Where do tasks commonly get stuck?
+   - What causes delays in delivery?
+
+3. AI Opportunity Mapping:
+   - Which processes align with existing AI skills?
+   - Where could AI reduce bottlenecks?
+   - What new AI capabilities are needed?
 
 Example response format:
 {
@@ -30,11 +62,11 @@ Example response format:
 }`;
 
   const response = await openai.chat.completions.create({
-    model: "gpt-4-1106-preview",
+    model: "gpt-4o-mini",
     messages: [
       {
         role: "system",
-        content: "You are an AI implementation consultant helping businesses assess their AI readiness. Generate specific, relevant questions based on the provided business context. Always return exactly 10 questions in JSON format."
+        content: systemPrompt
       },
       {
         role: "user",
@@ -42,6 +74,7 @@ Example response format:
       }
     ],
     response_format: { type: "json_object" },
+    temperature: 0.7
   });
 
   const content = response.choices[0].message.content;
@@ -50,13 +83,10 @@ Example response format:
   }
 
   try {
-    const parsedContent = JSON.parse(content);
-    if (!Array.isArray(parsedContent.questions) || parsedContent.questions.length !== 10) {
-      throw new Error('Invalid response format from OpenAI');
-    }
-    return parsedContent.questions;
+    const parsed = JSON.parse(content);
+    return parsed.questions;
   } catch (error) {
-    console.error('Error parsing OpenAI response:', error);
+    console.error('Failed to parse OpenAI response:', content);
     throw new Error('Failed to parse OpenAI response');
   }
 }
