@@ -18,7 +18,11 @@ interface TeamMember {
   details?: {
     department?: string;
     reportsTo?: string;
-    enneagramType?: string;
+    enneagramType?: {
+      value: string;
+      label: string;
+    };
+    aiSkills?: string[];
   }
 }
 
