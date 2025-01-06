@@ -12,6 +12,7 @@ interface CollapsibleSectionProps {
   defaultExpanded?: boolean
   onToggle?: (sectionId: string) => void
   onSave?: (sectionId: string, content: any) => void
+  className?: string
 }
 
 export function CollapsibleSection({
@@ -23,6 +24,7 @@ export function CollapsibleSection({
   defaultExpanded = false,
   onToggle,
   onSave,
+  className,
 }: CollapsibleSectionProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editedContent, setEditedContent] = useState(content)
@@ -112,7 +114,7 @@ export function CollapsibleSection({
   }
 
   return (
-    <div className="rounded-lg border border-neutral-800 bg-neutral-900/50 overflow-hidden">
+    <div className={['rounded-lg border border-neutral-800 bg-neutral-900/50 overflow-hidden', className].join(' ')}>
       <div 
         className="flex items-center justify-between px-6 py-4 cursor-pointer hover:bg-neutral-800/50"
         onClick={handleToggle}

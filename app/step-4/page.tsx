@@ -173,7 +173,6 @@ export default function Step4Page() {
                         key={section}
                         title={formattedTitle}
                         defaultExpanded={true}
-                        className="rounded-lg border border-neutral-800 bg-neutral-900/50"
                       >
                         <div className="space-y-4 text-neutral-300">
                           {renderedContent}
