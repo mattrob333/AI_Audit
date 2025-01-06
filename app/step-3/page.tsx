@@ -7,6 +7,8 @@ import { HelpGuide } from '@/components/help-guide'
 import { QuestionForm } from '@/components/question-form'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Sidebar } from '@/components/sidebar'
+import { HelpPanel } from '@/components/help-panel'
 
 export default function Step3Page() {
   const router = useRouter()
@@ -78,39 +80,55 @@ export default function Step3Page() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <div className="sticky top-0 z-40 bg-background">
-        <ProgressSteps currentStep={3} />
-      </div>
-      <div className="flex-1 px-4 lg:px-8 py-6">
-        <div className="mr-80">
-          <div className="max-w-3xl">
-            <div className="mb-12">
-              <h1 className="mb-4 text-4xl font-bold tracking-tight">
-                Company Audit
-              </h1>
-              <p className="text-lg text-muted-foreground">
-                Answer these questions to help us tailor your AI integration plan.
-              </p>
-            </div>
-
-            {error && (
-              <Alert variant="destructive" className="mb-6">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-
-            {loading ? (
-              <div className="flex justify-center py-12">
-                <LoadingSpinner />
-              </div>
-            ) : (
-              <QuestionForm questions={questions} onSubmit={handleSubmit} />
-            )}
-          </div>
+    <div className="flex min-h-screen bg-black">
+      <Sidebar className="fixed left-0 top-0 h-full w-52" />
+      
+      <main className="flex-1 pl-52">
+        <div className="sticky top-0 z-40 border-b border-neutral-800 bg-black/95 backdrop-blur supports-[backdrop-filter]:bg-black/80">
+          <ProgressSteps currentStep={3} />
         </div>
-        <HelpGuide expanded={true} />
-      </div>
+        
+        <div className="mx-auto max-w-3xl px-6 py-10">
+          <div className="mb-12">
+            <h1 className="text-4xl font-bold tracking-tight text-neutral-50">
+              Company Audit
+            </h1>
+            <p className="mt-3 text-lg text-neutral-400">
+              Answer these questions to help us tailor your AI integration plan.
+            </p>
+          </div>
+
+          {error && (
+            <Alert variant="destructive" className="mb-6">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
+          {loading ? (
+            <div className="flex justify-center py-12">
+              <LoadingSpinner />
+            </div>
+          ) : (
+            <QuestionForm questions={questions} onSubmit={handleSubmit} />
+          )}
+        </div>
+
+        <HelpGuide 
+          className="fixed top-[80px] right-8 w-72 h-[calc(100vh-112px)]"
+          title="Answering the Audit"
+          description="These questions help us understand your company's current state and readiness for AI integration."
+        >
+          <div className="space-y-4">
+            <p>Tips for answering:</p>
+            <ul className="list-disc pl-4 space-y-2">
+              <li>Be specific about your current processes</li>
+              <li>Include any pain points or challenges</li>
+              <li>Mention any previous automation attempts</li>
+              <li>Share your team's technical comfort level</li>
+            </ul>
+          </div>
+        </HelpGuide>
+      </main>
     </div>
   )
 }

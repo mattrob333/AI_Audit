@@ -1,16 +1,16 @@
-import '@/styles/globals.css'
+import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
-import { cn } from '@/lib/utils'
-import { MainNav } from '@/components/main-nav'
-import { SidebarProvider } from '@/components/ui/sidebar'
 import { TooltipProvider } from '@/components/ui/tooltip'
-import { CollapsibleHelpGuide } from '@/components/collapsible-help-guide'
+import { Toaster } from '@/components/ui/toaster'
+import './globals.css'
+import './prose.css'
+import { cn } from '@/lib/utils'
 
 const inter = Inter({ subsets: ['latin'] })
 
-export const metadata = {
+export const metadata: Metadata = {
   title: 'AI Integration Audit',
-  description: 'Start your AI integration journey',
+  description: 'Start your AI journey with a personalized integration audit',
 }
 
 export default function RootLayout({
@@ -19,26 +19,14 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className="dark" suppressHydrationWarning>
-      <head />
-      <body
-        className={cn(
-          'min-h-screen bg-background font-sans antialiased',
-          inter.className
-        )}
-      >
+    <html lang="en" className="dark">
+      <body className={cn(
+        inter.className,
+        'min-h-screen bg-black text-neutral-200'
+      )}>
         <TooltipProvider>
-          <SidebarProvider>
-            <div className="relative flex min-h-screen">
-              <div className="fixed inset-y-0 z-50">
-                <MainNav />
-              </div>
-              <main className="flex-1 ml-[250px]">
-                {children}
-                <CollapsibleHelpGuide />
-              </main>
-            </div>
-          </SidebarProvider>
+          {children}
+          <Toaster />
         </TooltipProvider>
       </body>
     </html>

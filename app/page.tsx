@@ -1,67 +1,77 @@
 'use client'
 
-import * as React from 'react'
-import { useRouter } from 'next/navigation'
-import { ProgressSteps } from '@/components/progress-steps'
-import { HelpGuide } from '@/components/help-guide'
 import { ProjectForm } from '@/components/project-form'
-import { TooltipProvider } from '@/components/ui/tooltip'
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
+import { Sidebar } from '@/components/sidebar'
+import { ProgressSteps } from '@/components/progress-steps'
+import { HelpPanel } from '@/components/help-panel'
+import { Button } from '@/components/ui/button'
+import { ArrowRight } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { useToast } from '@/components/ui/use-toast'
+import { useState } from 'react'
 
 export default function Page() {
   const router = useRouter()
+  const { toast } = useToast()
+  const [formData, setFormData] = useState<{
+    businessUrl: string
+    aiSummary: string
+    userDescription: string
+  } | null>(null)
 
   const handleNext = () => {
+    if (!formData?.businessUrl || !formData?.aiSummary) {
+      toast({
+        title: "Missing Information",
+        description: "Please enter your company URL and generate an AI analysis before proceeding.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Save step 1 data
+    localStorage.setItem('step1Data', JSON.stringify(formData))
+    
+    // Navigate to the existing step-2 page
     router.push('/step-2')
   }
 
   return (
-    <TooltipProvider>
-      <div className="flex flex-col min-h-screen">
-        <div className="sticky top-0 z-40 bg-background">
+    <div className="flex min-h-screen bg-black">
+      <Sidebar className="fixed left-0 top-0 h-full w-52" />
+      
+      <main className="flex-1 pl-52">
+        <div className="sticky top-0 z-40 border-b border-neutral-800 bg-black/95 backdrop-blur supports-[backdrop-filter]:bg-black/80">
           <ProgressSteps currentStep={1} />
         </div>
-        <div className="flex-1 px-4 lg:px-8 py-6 relative">
-          <div className="mr-80">
-            <ProjectForm onNext={handleNext} />
-            <HelpGuide expanded={true} />
+        
+        <div className="mx-auto max-w-3xl px-6 py-10">
+          <div className="mb-12">
+            <h1 className="text-4xl font-bold tracking-tight text-neutral-50">
+              Transform Your Business with AI
+            </h1>
+            <p className="mt-3 text-lg text-neutral-400 leading-relaxed">
+              In just 5 minutes, discover how AI can revolutionize your operations, boost efficiency, 
+              and give you a competitive edge. Let's build your personalized AI roadmap together.
+            </p>
           </div>
-          <div className="fixed top-[64px] right-0 bottom-0 w-80 border-l bg-background/100 px-4 py-6 z-50">
-            <h1 className="text-3xl font-bold mb-4">AI Audit Guide</h1>
-            <p className="text-gray-500 mb-8">Best practices for AI projects</p>
-            
-            <Accordion type="single" collapsible className="w-full">
-              <AccordionItem value="data">
-                <AccordionTrigger>Making the Most of Your Data</AccordionTrigger>
-                <AccordionContent>
-                  Learn how to effectively prepare, clean, and utilize your data for AI projects.
-                </AccordionContent>
-              </AccordionItem>
 
-              <AccordionItem value="compliance">
-                <AccordionTrigger>Compliance & Security</AccordionTrigger>
-                <AccordionContent>
-                  Understand the key compliance requirements and security best practices for AI implementations.
-                </AccordionContent>
-              </AccordionItem>
+          <ProjectForm onFormDataChange={setFormData} />
 
-              <AccordionItem value="process">
-                <AccordionTrigger>Process Mapping</AccordionTrigger>
-                <AccordionContent>
-                  Map out your AI integration process and identify key milestones.
-                </AccordionContent>
-              </AccordionItem>
-
-              <AccordionItem value="team">
-                <AccordionTrigger>Team Collaboration</AccordionTrigger>
-                <AccordionContent>
-                  Best practices for team coordination and collaboration in AI projects.
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
+          <div className="mt-8 flex justify-end">
+            <Button 
+              onClick={handleNext}
+              size="lg"
+              className="bg-emerald-500 hover:bg-emerald-600 text-neutral-900"
+            >
+              Next Step
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
           </div>
         </div>
-      </div>
-    </TooltipProvider>
+      </main>
+
+      <HelpPanel />
+    </div>
   )
 }

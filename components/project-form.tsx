@@ -1,215 +1,229 @@
 'use client'
 
 import * as React from 'react'
-import { Mic, Wand2, Search, Loader2 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Button } from '@/components/ui/button'
+import { Loader2, Mic } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { openai } from '@/lib/openai'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import ReactMarkdown from 'react-markdown'
 
-const suggestions = ['Industry & Market', 'Existing Processes', 'Software / Tooling', 'Challenges / Goals']
+const FLOWISE_API_URL = 'https://flowise-jc8z.onrender.com/api/v1/prediction/'
+const CHATFLOW_ID = 'a4604503-0f4c-4047-925c-419ca43664ba'
 
-export function ProjectForm({ onNext }: { onNext: () => void }) {
-  const [description, setDescription] = React.useState<string>('')
-  const [businessName, setBusinessName] = React.useState('')
+interface ProjectFormProps {
+  onFormDataChange?: (data: {
+    businessUrl: string
+    aiSummary: string
+    userDescription: string
+  }) => void
+}
+
+export function ProjectForm({ onFormDataChange }: ProjectFormProps) {
   const [businessUrl, setBusinessUrl] = React.useState('')
-  const [enhancing, setEnhancing] = React.useState(false)
   const [generatingSummary, setGeneratingSummary] = React.useState(false)
+  const [aiSummary, setAiSummary] = React.useState('')
+  const [isRecording, setIsRecording] = React.useState(false)
+  const [userDescription, setUserDescription] = React.useState('')
+  const mediaRecorderRef = React.useRef<MediaRecorder | null>(null)
+  const chunksRef = React.useRef<Blob[]>([])
 
-  const addSuggestion = (suggestion: string) => {
-    setDescription(prev => {
-      const newText = `${suggestion}:
-- `
-      return prev ? `${prev}
-
-${newText}` : newText
+  // Update parent component when form data changes
+  React.useEffect(() => {
+    onFormDataChange?.({
+      businessUrl,
+      aiSummary,
+      userDescription
     })
+  }, [businessUrl, aiSummary, userDescription, onFormDataChange])
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const mediaRecorder = new MediaRecorder(stream)
+      mediaRecorderRef.current = mediaRecorder
+      chunksRef.current = []
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          chunksRef.current.push(e.data)
+        }
+      }
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' })
+        setUserDescription(prev => prev + "\n[Voice input would be transcribed here]")
+        stream.getTracks().forEach(track => track.stop())
+      }
+
+      mediaRecorder.start()
+      setIsRecording(true)
+    } catch (error) {
+      console.error('Error starting recording:', error)
+    }
   }
 
-  const enhanceDescription = async () => {
-    if (!description) return
-    
-    setEnhancing(true)
-    try {
-      const response = await fetch('/api/enhance', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          question: "Please provide a comprehensive business overview",
-          answer: description
-        }),
-      })
-
-      const data = await response.json()
-      if (data.enhancedAnswer) {
-        setDescription(data.enhancedAnswer)
-      }
-    } catch (error) {
-      console.error('Error enhancing description:', error)
-    } finally {
-      setEnhancing(false)
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop()
+      setIsRecording(false)
     }
   }
 
   const generateSummary = async () => {
-    if (!businessUrl.trim()) return;
+    if (!businessUrl.trim() || generatingSummary) return
+    setGeneratingSummary(true)
     
-    setGeneratingSummary(true);
     try {
-      const response = await fetch('https://flowise-jc8z.onrender.com/api/v1/prediction/a4604503-0f4c-4047-925c-419ca43664ba', {
+      const response = await fetch(`${FLOWISE_API_URL}${CHATFLOW_ID}`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          question: `Please research and provide a summary of ${businessUrl}`,
-          url: businessUrl
+          question: `Analyze this company URL: ${businessUrl}`,
+          history: []
         })
-      });
+      })
 
-      const result = await response.json();
-      
-      // Wait longer to ensure the full response is generated
-      await new Promise(resolve => setTimeout(resolve, 5000));
-      
-      if (result) {
-        const summaryText = typeof result === 'object' ? result.text || result.answer || result.response || JSON.stringify(result) : result;
-        setDescription(summaryText);
+      if (!response.ok) {
+        throw new Error('Failed to get AI analysis')
       }
-    } catch (error) {
-      console.error('Error generating summary:', error);
-      setDescription('Error: Could not generate summary. Please try again.');
-    } finally {
-      setGeneratingSummary(false);
-    }
-  };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    const businessDetails = {
-      businessName,
-      businessUrl,
-      description
+      const data = await response.json()
+      // Clean and process the response text
+      const formattedText = data.text
+        ?.replace(/```markdown/g, '') // Remove markdown code block markers
+        ?.replace(/```/g, '') // Remove remaining code block markers
+        ?.replace(/^#+\s+/gm, '') // Remove markdown headers
+        ?.replace(/\*\*/g, '') // Remove bold markers
+        ?.replace(/^\s*[-•]\s*/gm, '• ') // Standardize bullet points
+        ?.replace(/\n{3,}/g, '\n\n') // Reduce multiple newlines to maximum of 2
+        ?.trim() || 'Unable to generate analysis. Please try again.'
+      setAiSummary(formattedText)
+    } catch (error) {
+      console.error('Error generating summary:', error)
+      setAiSummary('Error generating analysis. Please try again.')
+    } finally {
+      setGeneratingSummary(false)
     }
-    localStorage.setItem('businessDetails', JSON.stringify(businessDetails))
-    onNext()
   }
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-3xl py-8">
-      <div className="mb-12">
-        <h1 className="text-4xl font-bold tracking-tight mb-4">
-          Start Your AI Integration Audit
-        </h1>
-        <p className="text-lg text-muted-foreground">
-          Tell us about your business so we can uncover AI-driven opportunities and tailor your personalized plan.
-        </p>
+    <div className="space-y-8">
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <h2 className="text-xl font-semibold text-neutral-200">
+            Let's Start with Your Company
+          </h2>
+          <p className="text-base text-neutral-400">
+            Share your company's website or LinkedIn URL. We'll analyze your business 
+            context to identify the most impactful AI opportunities.
+          </p>
+        </div>
+
+        <div className="flex gap-2">
+          <Input
+            type="url"
+            placeholder="https://www.linkedin.com/company/your-company"
+            value={businessUrl}
+            onChange={(e) => setBusinessUrl(e.target.value)}
+            className="flex-1 bg-neutral-950 border-neutral-800 text-neutral-200 placeholder:text-neutral-500"
+          />
+          <Button
+            onClick={generateSummary}
+            disabled={generatingSummary || !businessUrl.trim()}
+            className="px-6 bg-emerald-600 hover:bg-emerald-500 text-neutral-950 font-medium"
+          >
+            {generatingSummary ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Analyzing...
+              </>
+            ) : (
+              'Generate Summary'
+            )}
+          </Button>
+        </div>
       </div>
 
-      <div className="space-y-8">
-        <div className="space-y-4">
-          <Label htmlFor="businessName" className="text-base">Business Name</Label>
-          <Input
-            id="businessName"
-            value={businessName}
-            onChange={(e) => setBusinessName(e.target.value)}
-            placeholder="e.g., Acme Logistics Inc. or Tech Solutions LLC"
-            required
-          />
-        </div>
-
-        <div className="space-y-4">
-          <Label htmlFor="businessUrl" className="text-base">Business Website or LinkedIn URL</Label>
-          <div className="flex gap-2">
-            <Input
-              id="businessUrl"
-              value={businessUrl}
-              onChange={(e) => setBusinessUrl(e.target.value)}
-              placeholder="e.g., https://www.example.com or https://www.linkedin.com/company/example"
-              type="url"
-              className="flex-1"
-            />
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  size="icon"
-                  onClick={generateSummary}
-                  disabled={generatingSummary || !businessUrl.trim()}
-                >
-                  {generatingSummary ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Search className="h-4 w-4" />
-                  )}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                Generate summary from URL
-              </TooltipContent>
-            </Tooltip>
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <Label htmlFor="businessOverview" className="text-base">Business Overview</Label>
-          <div className="flex flex-wrap gap-2 mb-2">
-            {suggestions.map(suggestion => (
-              <Button
-                key={suggestion}
-                variant="secondary"
-                size="sm"
-                onClick={() => addSuggestion(suggestion)}
-              >
-                {suggestion}
-              </Button>
-            ))}
-          </div>
-          <div className="relative">
-            <Textarea
-              id="businessOverview"
-              value={description}
-              onChange={e => setDescription(e.target.value)}
-              placeholder="Include details like market/industry, products/services offered, current size (number of employees), revenue range, or any core challenges you're facing."
-              className="min-h-[200px] resize-y"
-            />
-            <div className="absolute bottom-2 right-2 flex items-center gap-2">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button size="icon" variant="ghost">
-                    <Mic className="h-4 w-4" />
-                    <span className="sr-only">Voice input</span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Record your description by voice</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button 
-                    size="icon" 
-                    variant="ghost" 
-                    type="button"
-                    disabled={enhancing || !description}
-                    onClick={enhanceDescription}
-                  >
-                    <Wand2 className={cn("h-4 w-4", enhancing && "animate-pulse")} />
-                    <span className="sr-only">AI refinement</span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Enhance your description with AI</TooltipContent>
-              </Tooltip>
+      <div className="space-y-4">
+        {aiSummary && (
+          <div className="mt-8 space-y-4">
+            <h2 className="text-xl font-semibold text-neutral-50">Business Overview</h2>
+            <div className="rounded-lg border border-neutral-800 bg-neutral-900/50 p-6">
+              <div className="text-neutral-300 space-y-4">
+                {aiSummary.split('\n\n').map((paragraph, i) => (
+                  <div key={i} className="space-y-2">
+                    {paragraph.split('\n').map((line, j) => {
+                      // Skip empty lines
+                      if (!line.trim()) return null;
+                      
+                      // Check if this is a section header
+                      if (line.match(/^[A-Z][A-Za-z\s]+:?$/)) {
+                        return (
+                          <h3 key={j} className="text-neutral-50 font-medium mt-4 mb-2">
+                            {line}
+                          </h3>
+                        );
+                      }
+                      
+                      // Regular line or bullet point
+                      return (
+                        <p key={j} className="text-neutral-300 leading-relaxed">
+                          {line}
+                        </p>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
+        )}
+      </div>
+
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <h2 className="text-xl font-semibold text-neutral-200">
+            Your AI Vision
+          </h2>
+          <p className="text-base text-neutral-400">
+            What are your biggest business challenges? Tell us your goals and pain points, 
+            and we'll align AI solutions to solve them. Use voice or text to share your thoughts.
+          </p>
         </div>
 
-        <div className="flex justify-end">
-          <Button size="lg" type="submit">Next Step</Button>
+        <div className="relative">
+          <Textarea
+            value={userDescription}
+            onChange={e => setUserDescription(e.target.value)}
+            placeholder="Share your thoughts on how AI could help your business..."
+            className="min-h-[200px] resize-y pr-20 bg-neutral-950 border-neutral-800 text-neutral-200 placeholder:text-neutral-500"
+          />
+          <div className="absolute bottom-2 right-2 flex items-center gap-2">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={isRecording ? stopRecording : startRecording}
+                    className="bg-neutral-950 border-neutral-800 hover:bg-emerald-500/10 hover:text-emerald-500"
+                  >
+                    <Mic className={cn("h-4 w-4", isRecording && "text-emerald-500")} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{isRecording ? "Stop recording" : "Start recording"}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
         </div>
       </div>
-    </form>
+    </div>
   )
 }
