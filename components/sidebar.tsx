@@ -46,10 +46,26 @@ export function Sidebar({ className, ...props }: SidebarProps) {
 
   return (
     <div className={cn("flex flex-col bg-black border-r border-neutral-800", className)} {...props}>
-      <div className="flex h-16 items-center px-4">
-        <Link href="/" className="flex items-center space-x-2">
-          <span className="text-lg font-bold tracking-tight text-emerald-500">nextmethod.ai</span>
-        </Link>
+      <div className="flex items-center gap-3 px-6 py-4">
+        <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-900">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            xmlns="http://www.w3.org/2000/svg"
+            className="text-emerald-400"
+          >
+            <path
+              d="M4 20L10 14L14 18L20 4"
+            />
+          </svg>
+        </div>
+        <span className="font-semibold text-neutral-200">nextmethod.ai</span>
       </div>
       <nav className="flex flex-col space-y-1 px-2">
         {items.map((item) => {
