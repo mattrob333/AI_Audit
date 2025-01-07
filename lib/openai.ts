@@ -110,9 +110,9 @@ export async function enhanceAnswer(question: string, currentAnswer: string) {
 }
 
 export async function transcribeAudio(audioBlob: Blob) {
-  // Convert Blob to File object
-  const audioFile = new File([audioBlob], 'audio.wav', { 
-    type: audioBlob.type,
+  // Convert Blob to File object with correct extension for webm
+  const audioFile = new File([audioBlob], 'audio.webm', { 
+    type: 'audio/webm',
     lastModified: Date.now()
   });
 

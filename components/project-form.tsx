@@ -41,7 +41,9 @@ export function ProjectForm({ onFormDataChange }: ProjectFormProps) {
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const mediaRecorder = new MediaRecorder(stream)
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: 'audio/webm;codecs=opus'
+      })
       mediaRecorderRef.current = mediaRecorder
       chunksRef.current = []
 
@@ -53,8 +55,29 @@ export function ProjectForm({ onFormDataChange }: ProjectFormProps) {
 
       mediaRecorder.onstop = async () => {
         const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' })
-        setUserDescription(prev => prev + "\n[Voice input would be transcribed here]")
-        stream.getTracks().forEach(track => track.stop())
+        try {
+          const formData = new FormData()
+          formData.append('audio', audioBlob)
+          
+          const response = await fetch('/api/transcribe', {
+            method: 'POST',
+            body: formData,
+          })
+          
+          if (!response.ok) {
+            throw new Error('Failed to transcribe audio')
+          }
+          
+          const { transcription } = await response.json()
+          setUserDescription(prev => prev + (prev ? '\n' : '') + transcription)
+        } catch (error) {
+          console.error('Error processing audio:', error)
+          setUserDescription(prev => prev + (prev ? '\n' : '') + '[Error transcribing audio]')
+        } finally {
+          chunksRef.current = []
+          // Cleanup the media stream
+          stream.getTracks().forEach(track => track.stop())
+        }
       }
 
       mediaRecorder.start()
