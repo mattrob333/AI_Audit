@@ -22,13 +22,13 @@ export default function Step3Page() {
         setLoading(true)
         setError('')
         
-        const businessDetails = JSON.parse(localStorage.getItem('businessDetails') || '{}')
+        const businessDetails = JSON.parse(localStorage.getItem('step1Data') || '{}')
         const teamDetails = JSON.parse(localStorage.getItem('teamDetails') || '{}')
 
         console.log('Business Details:', businessDetails)
         console.log('Team Details:', teamDetails)
 
-        if (!businessDetails.businessName || !businessDetails.description || !teamDetails) {
+        if (!businessDetails.businessUrl || !businessDetails.aiSummary || !teamDetails.teamMembers) {
           setError('Please complete the previous steps first')
           return
         }

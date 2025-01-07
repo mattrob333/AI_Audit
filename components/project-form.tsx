@@ -14,13 +14,17 @@ const CHATFLOW_ID = 'a4604503-0f4c-4047-925c-419ca43664ba'
 
 interface ProjectFormProps {
   onFormDataChange?: (data: {
+    businessName: string
+    industry: string
     businessUrl: string
     aiSummary: string
     userDescription: string
   }) => void
+  onSummaryGenerated?: () => void
+  onNext?: () => void
 }
 
-export function ProjectForm({ onFormDataChange }: ProjectFormProps) {
+export function ProjectForm({ onFormDataChange, onSummaryGenerated, onNext }: ProjectFormProps) {
   const [businessUrl, setBusinessUrl] = React.useState('')
   const [generatingSummary, setGeneratingSummary] = React.useState(false)
   const [aiSummary, setAiSummary] = React.useState('')
@@ -32,6 +36,8 @@ export function ProjectForm({ onFormDataChange }: ProjectFormProps) {
   // Update parent component when form data changes
   React.useEffect(() => {
     onFormDataChange?.({
+      businessName: '',
+      industry: '',
       businessUrl,
       aiSummary,
       userDescription
@@ -95,7 +101,15 @@ export function ProjectForm({ onFormDataChange }: ProjectFormProps) {
   }
 
   const generateSummary = async () => {
-    if (!businessUrl.trim() || generatingSummary) return
+    // Validate all required fields
+    if (!businessUrl.trim() || generatingSummary) {
+      console.error('Missing required fields:', {
+        businessUrl: businessUrl.trim()
+      });
+      setAiSummary('Please fill in all required fields (Company Website or LinkedIn URL) before generating the analysis.');
+      return;
+    }
+    
     setGeneratingSummary(true)
     
     try {
@@ -105,7 +119,7 @@ export function ProjectForm({ onFormDataChange }: ProjectFormProps) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          question: `Analyze this company URL: ${businessUrl}`,
+          question: `Analyze this company URL: ${businessUrl}.`,
           history: []
         })
       })
@@ -125,6 +139,7 @@ export function ProjectForm({ onFormDataChange }: ProjectFormProps) {
         ?.replace(/\n{3,}/g, '\n\n') // Reduce multiple newlines to maximum of 2
         ?.trim() || 'Unable to generate analysis. Please try again.'
       setAiSummary(formattedText)
+      onSummaryGenerated?.()
     } catch (error) {
       console.error('Error generating summary:', error)
       setAiSummary('Error generating analysis. Please try again.')
@@ -136,28 +151,20 @@ export function ProjectForm({ onFormDataChange }: ProjectFormProps) {
   return (
     <div className="space-y-8">
       <div className="space-y-4">
-        <div className="space-y-2">
-          <h2 className="text-xl font-semibold text-neutral-200">
-            Let's Start with Your Company
-          </h2>
-          <p className="text-base text-neutral-400">
-            Share your company's website or LinkedIn URL. We'll analyze your business 
-            context to identify the most impactful AI opportunities.
-          </p>
-        </div>
+        <h2 className="text-lg font-semibold text-white">Let's Start with Your Company</h2>
+        <p className="text-sm text-zinc-400">
+          Share your company's website or LinkedIn URL. We'll analyze your business context to identify the most impactful AI opportunities.
+        </p>
 
         <div className="flex gap-2">
           <Input
-            type="url"
-            placeholder="https://www.linkedin.com/company/your-company"
+            placeholder="Company Website or LinkedIn URL"
             value={businessUrl}
             onChange={(e) => setBusinessUrl(e.target.value)}
-            className="flex-1 bg-neutral-950 border-neutral-800 text-neutral-200 placeholder:text-neutral-500"
           />
           <Button
             onClick={generateSummary}
             disabled={generatingSummary || !businessUrl.trim()}
-            className="px-6 bg-emerald-600 hover:bg-emerald-500 text-neutral-950 font-medium"
           >
             {generatingSummary ? (
               <>
@@ -171,80 +178,53 @@ export function ProjectForm({ onFormDataChange }: ProjectFormProps) {
         </div>
       </div>
 
-      <div className="space-y-4">
-        {aiSummary && (
-          <div className="mt-8 space-y-4">
-            <h2 className="text-xl font-semibold text-neutral-50">Business Overview</h2>
-            <div className="rounded-lg border border-neutral-800 bg-neutral-900/50 p-6">
-              <div className="text-neutral-300 space-y-4">
-                {aiSummary.split('\n\n').map((paragraph, i) => (
-                  <div key={i} className="space-y-2">
-                    {paragraph.split('\n').map((line, j) => {
-                      // Skip empty lines
-                      if (!line.trim()) return null;
-                      
-                      // Check if this is a section header
-                      if (line.match(/^[A-Z][A-Za-z\s]+:?$/)) {
-                        return (
-                          <h3 key={j} className="text-neutral-50 font-medium mt-4 mb-2">
-                            {line}
-                          </h3>
-                        );
-                      }
-                      
-                      // Regular line or bullet point
-                      return (
-                        <p key={j} className="text-neutral-300 leading-relaxed">
-                          {line}
-                        </p>
-                      );
-                    })}
-                  </div>
-                ))}
-              </div>
+      {aiSummary && (
+        <div className="space-y-4 bg-neutral-900/50 rounded-lg p-6 border border-neutral-800">
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold text-neutral-200">AI Analysis</h2>
+            <div className="prose prose-invert max-w-none">
+              <ReactMarkdown 
+                className="text-sm text-neutral-200 [&>h3]:text-lg [&>h3]:font-medium [&>h3]:mb-2 [&>p]:mb-4 [&>ul]:list-disc [&>ul]:pl-4 [&>ul]:mb-4 [&>ul>li]:mb-1"
+              >
+                {aiSummary}
+              </ReactMarkdown>
             </div>
           </div>
-        )}
-      </div>
-
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <h2 className="text-xl font-semibold text-neutral-200">
-            Your AI Vision
-          </h2>
-          <p className="text-base text-neutral-400">
-            What are your biggest business challenges? Tell us your goals and pain points, 
-            and we'll align AI solutions to solve them. Use voice or text to share your thoughts.
-          </p>
         </div>
+      )}
 
+      <div className="space-y-2">
+        <h2 className="text-lg font-semibold text-white">Your AI Vision</h2>
+        <p className="text-sm text-zinc-400">
+          What are your biggest business challenges? Tell us your goals and pain points, and we'll align AI solutions to solve them.
+        </p>
         <div className="relative">
           <Textarea
+            placeholder="Describe your business challenges and goals..."
             value={userDescription}
-            onChange={e => setUserDescription(e.target.value)}
-            placeholder="Share your thoughts on how AI could help your business..."
-            className="min-h-[200px] resize-y pr-20 bg-neutral-950 border-neutral-800 text-neutral-200 placeholder:text-neutral-500"
+            onChange={(e) => setUserDescription(e.target.value)}
+            className="min-h-[100px]"
           />
-          <div className="absolute bottom-2 right-2 flex items-center gap-2">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    onClick={isRecording ? stopRecording : startRecording}
-                    className="bg-neutral-950 border-neutral-800 hover:bg-emerald-500/10 hover:text-emerald-500"
-                  >
-                    <Mic className={cn("h-4 w-4", isRecording && "text-emerald-500")} />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>{isRecording ? "Stop recording" : "Start recording"}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className={cn(
+                    'absolute bottom-4 right-4 h-6 w-6',
+                    isRecording && 'text-red-500'
+                  )}
+                  onClick={isRecording ? stopRecording : startRecording}
+                >
+                  <Mic className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {isRecording ? 'Stop recording' : 'Start recording'}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </div>
     </div>

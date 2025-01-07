@@ -92,25 +92,25 @@ export function CollapsibleSection({
     return typeof content === 'string' ? (
       <p className="whitespace-pre-wrap">{content}</p>
     ) : Array.isArray(content) ? (
-      <ul className="list-disc pl-6 space-y-2">
+      <ul className="list-disc ml-4">
         {content.map((item, index) => (
-          <li key={index}>{item}</li>
+          <li key={index} className="ml-1 pl-1">{item}</li>
         ))}
       </ul>
-    ) : (
-      <ul className="list-disc pl-6 space-y-2">
-        {Object.entries(content || {}).map(([phase, tasks]) => (
-          <li key={phase}>
-            <strong>{phase}:</strong>
-            <ul className="list-disc pl-6 space-y-1 mt-1">
-              {(tasks as string[]).map((task, i) => (
-                <li key={i}>{task}</li>
+    ) : content ? (
+      <div className="space-y-4">
+        {Object.entries(content).map(([phase, description]) => (
+          <div key={phase} className="space-y-2">
+            <h3 className="font-semibold">{phase}</h3>
+            <ul className="list-disc ml-4">
+              {(description as string[]).map((item, i) => (
+                <li key={i} className="ml-1 pl-1">{item}</li>
               ))}
             </ul>
-          </li>
+          </div>
         ))}
-      </ul>
-    )
+      </div>
+    ) : null
   }
 
   return (

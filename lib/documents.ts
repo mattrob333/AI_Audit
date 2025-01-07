@@ -1,3 +1,4 @@
+import { Configuration, OpenAIApi } from 'openai';
 import { openai } from './openai';
 
 export interface ExaSearchResult {
@@ -62,19 +63,77 @@ async function enrichPromptWithExaData(docType: DocumentType, userData: UserData
   }
 }
 
-export async function generateDocument(docType: DocumentType, userData: UserData): Promise<string> {
-  const response = await fetch('/api/generate-document', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ docType, userData }),
+interface GenerateDocumentParams {
+  businessDetails: any;
+  teamDetails: any;
+  auditAnswers: any[];
+  overview: any;
+  documentType: DocumentType;
+}
+
+interface Prompt {
+  system: string;
+  user: string;
+}
+
+async function buildDocumentPrompt(documentType: DocumentType, data: any): Promise<Prompt> {
+  // TO DO: implement prompt building logic
+  // For now, just return a dummy prompt
+  return {
+    system: `You are an AI integration expert. Generate a detailed ${documentType} document based on the provided business information and research data. The document should be in markdown format with clear sections and bullet points where appropriate.`,
+    user: `
+Business Details:
+${JSON.stringify(data.businessDetails, null, 2)}
+
+Team Details:
+${JSON.stringify(data.teamDetails, null, 2)}
+
+Audit Answers:
+${JSON.stringify(data.auditAnswers, null, 2)}
+
+Business Overview and Analysis:
+${JSON.stringify(data.overview, null, 2)}
+
+Additional Research Context:
+${data.searchResults.map(result => `${result.title}:\n${result.content}`).join('\n\n')}
+
+Please generate a detailed ${documentType} document in markdown format.`
+  };
+}
+
+export async function generateDocument({
+  businessDetails,
+  teamDetails,
+  auditAnswers,
+  overview,
+  documentType
+}: GenerateDocumentParams): Promise<string> {
+  // Get relevant search results to enrich the prompt
+  const searchResults = await enrichPromptWithExaData(documentType, {
+    businessUrl: businessDetails.businessUrl,
+    aiSummary: businessDetails.aiSummary,
+    teamMembers: teamDetails.teamMembers,
+    overview
   });
 
-  if (!response.ok) {
-    throw new Error('Failed to generate document');
-  }
+  // Build the prompt based on document type
+  const prompt = await buildDocumentPrompt(documentType, {
+    businessDetails,
+    teamDetails,
+    auditAnswers,
+    overview,
+    searchResults
+  });
 
-  const data = await response.json();
-  return data.document;
+  const response = await openai.chat.completions.create({
+    model: "gpt-4",
+    messages: [
+      { role: "system", content: prompt.system },
+      { role: "user", content: prompt.user }
+    ],
+    temperature: 0.7,
+    max_tokens: 2500
+  });
+
+  return response.choices[0].message.content || '';
 }

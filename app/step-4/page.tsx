@@ -12,12 +12,50 @@ import { Pencil, ChevronDown, ChevronUp } from 'lucide-react'
 import { Sidebar } from '@/components/sidebar'
 
 interface Timeline {
-  [phase: string]: string;
+  phase1_assessment: string;
+  phase2_implementation: string;
+  phase3_expansion: string;
 }
 
 interface OverviewData {
-  timeline?: Timeline;
-  [key: string]: Timeline | string[] | string | undefined;
+  businessOverview: string;
+  keyChallenges: string[];
+  strengths: string[];
+  integrationOpportunities: string[];
+  implementationConsiderations: string[];
+  timeline: Timeline;
+  trainingNeeds: string[];
+  complianceAndSecurity: string[];
+}
+
+interface Step1Data {
+  businessUrl: string;
+  aiSummary: string;
+  userDescription: string;
+}
+
+interface TeamMember {
+  id: string;
+  name: string;
+  role: string;
+  responsibilities: string;
+  email: string;
+  inviteStatus: 'not_invited' | 'invited' | 'completed';
+  details?: {
+    department?: string;
+    reportsTo?: string;
+    enneagramType?: {
+      value: string;
+      label: string;
+    }
+    aiSkills?: string[] // Array of selected AI skill areas
+  }
+}
+
+interface TeamDetails {
+  teamMembers: TeamMember[];
+  currentSoftware: string[];
+  aiToolsOfInterest: string[];
 }
 
 export default function Step4Page() {
@@ -47,57 +85,97 @@ export default function Step4Page() {
   const validateOverviewData = (data: any): data is OverviewData => {
     if (typeof data !== 'object' || data === null) return false;
     
-    if (data.timeline) {
-      if (typeof data.timeline !== 'object') return false;
-      for (const [_, value] of Object.entries(data.timeline)) {
-        if (typeof value !== 'string') return false;
-      }
+    // Check required string fields
+    if (typeof data.businessOverview !== 'string') return false;
+    
+    // Check required array fields
+    const arrayFields = [
+      'keyChallenges',
+      'strengths',
+      'integrationOpportunities',
+      'implementationConsiderations',
+      'trainingNeeds',
+      'complianceAndSecurity'
+    ];
+    
+    for (const field of arrayFields) {
+      if (!Array.isArray(data[field])) return false;
+      if (!data[field].every((item: any) => typeof item === 'string')) return false;
+    }
+    
+    // Check timeline structure
+    if (typeof data.timeline !== 'object' || data.timeline === null) return false;
+    const requiredPhases = ['phase1_assessment', 'phase2_implementation', 'phase3_expansion'];
+    for (const phase of requiredPhases) {
+      if (typeof data.timeline[phase] !== 'string') return false;
     }
     
     return true;
   }
 
-  const generateOverview = async () => {
-    try {
-      setLoading(true)
-      setError('')
-      
-      const businessDetails = JSON.parse(localStorage.getItem('businessDetails') || '{}')
-      const teamDetails = JSON.parse(localStorage.getItem('teamDetails') || '{}')
-      const auditAnswers = JSON.parse(localStorage.getItem('auditAnswers') || '[]')
-
-      if (!businessDetails.businessName || !teamDetails || !auditAnswers.length) {
-        setError('Please complete all previous steps first')
-        return
-      }
-
-      const response = await fetch('/api/generate-overview', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ businessDetails, teamDetails, auditAnswers }),
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || `Failed to generate overview (${response.status})`)
-      }
-
-      const data = await response.json()
-      
-      if (!validateOverviewData(data)) {
-        throw new Error('Invalid overview data structure received from API')
-      }
-      
-      setOverview(data)
-    } catch (err: any) {
-      setError(err.message || 'Failed to generate overview')
-    } finally {
-      setLoading(false)
-    }
-  }
-
   React.useEffect(() => {
-    generateOverview()
+    const loadData = async () => {
+      try {
+        setLoading(true)
+        setError('')
+
+        // Load step 1 data first to get business details
+        const step1DataStr = localStorage.getItem('step1Data')
+        if (!step1DataStr) {
+          throw new Error('Missing business details from Step 1')
+        }
+        const step1Data = JSON.parse(step1DataStr)
+        
+        // Validate step 1 data
+        if (!step1Data.businessUrl || !step1Data.aiSummary) {
+          throw new Error('Missing required business details from Step 1')
+        }
+
+        // Load overview data
+        const overviewStr = localStorage.getItem('overview')
+        let overviewData = overviewStr ? JSON.parse(overviewStr) : null
+
+        if (!overviewData) {
+          // If no overview exists, generate it using the API
+          const response = await fetch('/api/generate-overview', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              businessUrl: step1Data.businessUrl,
+              aiSummary: step1Data.aiSummary,
+              userDescription: step1Data.userDescription
+            }),
+          })
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            console.error('Overview generation failed:', errorData);
+            throw new Error(errorData.error || 'Failed to generate overview');
+          }
+
+          overviewData = await response.json()
+          console.log('Received overview data:', overviewData);
+          
+          // Save the overview data
+          localStorage.setItem('overview', JSON.stringify(overviewData))
+        }
+
+        if (validateOverviewData(overviewData)) {
+          setOverview(overviewData)
+        } else {
+          throw new Error('Invalid overview data structure')
+        }
+      } catch (err: any) {
+        console.error('Error generating overview:', err)
+        setError(err.message || 'Failed to generate overview')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadData()
   }, [])
 
   const handleNext = () => {

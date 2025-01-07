@@ -1,41 +1,78 @@
-import { openai } from '../openai';
-import { DocumentType } from '../documents';
+import { getOpenAIClient } from '../openai';
+import { DocumentType } from '../types';
 import { searchIndustryInsights, searchCompanyInfo, searchAIUseCases, ExaSearchResult } from './exa';
 
 type UserData = {
-  businessName: string;
-  industry: string;
+  // Step 1 data
+  businessUrl: string;
+  aiSummary: string;
+  userDescription: string;
+  
+  // Step 2 data (optional)
   teamSize?: number;
-  currentTools?: string[];
-  overview?: {
-    businessOverview?: string;
-    keyChallenges?: string[];
-    strengths?: string[];
-    integrationOpportunities?: string[];
-    implementationConsiderations?: string;
-    timeline?: Record<string, string[]>;
-    trainingNeeds?: string[];
-    complianceAndSecurity?: string;
-  };
+  teamMembers?: Array<{
+    id: string;
+    name: string;
+    role: string;
+    responsibilities: string;
+    email: string;
+    inviteStatus: 'not_invited' | 'invited' | 'completed';
+    details?: {
+      department?: string;
+      reportsTo?: string;
+      enneagramType?: {
+        value: string;
+        label: string;
+      };
+      aiSkills?: string[];
+    }
+  }>;
+  currentSoftware?: string[];
+  aiToolsOfInterest?: string[];
+  
+  // Step 3 data (optional)
+  keyChallenges?: string[];
+  strengths?: string[];
+  integrationOpportunities?: string[];
+  implementationConsiderations?: string;
+  timeline?: Record<string, string[]>;
+  trainingNeeds?: string[];
+  complianceAndSecurity?: string;
 };
 
 async function enrichPromptWithExaData(docType: DocumentType, userData: UserData): Promise<ExaSearchResult[]> {
-  switch (docType) {
-    case 'executiveSummary':
-      return await searchCompanyInfo(userData.businessName);
-    case 'upskilling':
-      return await searchIndustryInsights(userData.industry);
-    case 'aiPersonas':
-    case 'chatbot':
-    case 'automationPlan':
-      return await searchAIUseCases(userData.industry);
-    default:
-      return [];
+  // Skip Exa search if no API key is configured
+  if (!process.env.EXA_API_KEY) {
+    console.log('Skipping Exa search - no API key configured');
+    return [];
+  }
+
+  try {
+    // Extract business name from URL or description
+    const businessName = userData.businessUrl.split('//')[1]?.split('/')[0] || 'the business';
+    
+    switch (docType) {
+      case 'executiveSummary':
+        return await searchCompanyInfo(businessName);
+      case 'upskilling':
+        // Use the first part of the AI summary to determine industry
+        const industry = userData.aiSummary.split('.')[0];
+        return await searchIndustryInsights(industry);
+      case 'aiPersonas':
+      case 'customerChatbot':
+      case 'automationPlan':
+        return await searchAIUseCases(userData.aiSummary);
+      default:
+        return [];
+    }
+  } catch (error) {
+    console.error('Error enriching prompt with Exa data:', error);
+    return [];
   }
 }
 
 export async function generateDocumentServer(docType: DocumentType, userData: UserData): Promise<string> {
-  // Get relevant external data from Exa
+  // Get relevant external data from Exa (will be empty if no API key)
   const exaResults = await enrichPromptWithExaData(docType, userData);
   
   // Build the system prompt based on document type
@@ -43,29 +80,32 @@ export async function generateDocumentServer(docType: DocumentType, userData: Us
   
   switch (docType) {
     case 'executiveSummary':
-      systemPrompt = `You are a top-tier AI consultant specializing in modernizing businesses through AI-driven strategies. The user has provided detailed context about their company, market, existing software stack, and organizational goals in previous steps. Please create a compelling, forward-looking Executive Summary in Markdown format that:
+      systemPrompt = `You are a top-tier AI consultant specializing in modernizing businesses through AI-driven strategies. Please create a compelling, forward-looking Executive Summary in Markdown format that:
 
-- Summarizes the current state of the business, including any notable challenges or market considerations
-- Highlights key opportunities for AI integration, emphasizing how these solutions will propel them into a more competitive and future-ready position
-- Reassures the user that adopting AI is both a wise and progressive decision, potentially giving them an edge over the competition
+- Summarizes the current state of the business based on: ${userData.userDescription}
+- Analyzes their AI vision: ${userData.aiSummary}
+- Highlights key opportunities for AI integration, emphasizing how these solutions will propel them into a more competitive position
 - Maintains an encouraging tone, reinforcing their momentum and readiness to embrace AI innovations
 
-Use concise, actionable insights drawn from:
-1. The business's own context and prior steps (e.g., team structure, software, market)
-2. Industry research or relevant best practices for AI adoption`;
+Additional context:
+${exaResults.map(r => `- ${r.snippet}`).join('\n')}`;
       break;
       
     case 'upskilling':
-      systemPrompt = `You are a leading AI adoption strategist focusing on developing high-impact training programs. The user has shared details about their team's skill levels, software tools, and broader AI goals. Please create a comprehensive Upskilling Document in Markdown format that:
+      systemPrompt = `You are a leading AI adoption strategist focusing on developing high-impact training programs. Create a comprehensive Upskilling Document in Markdown format that:
 
-- Outlines prompt engineering techniques and AI coding tool best practices (e.g., how to use Copilot, code generators, or other AI dev tools)
-- Explains how to shift the team's mindset to fully leverage AI for problem-solving, creativity, and daily workflow enhancements
-- Reinforces that by embracing these training initiatives, the user's business will surpass its competition and secure a strong future in their industry
-- Specifies practical steps, recommended learning milestones, and ongoing support or resources the team can use
+- Outlines prompt engineering techniques and AI coding tool best practices
+- Explains how to shift the team's mindset to fully leverage AI for problem-solving and creativity
+- Specifies practical steps, recommended learning milestones, and ongoing support resources
 
-Include detailed, actionable strategies based on:
-1. The user's specific context and integration plan (e.g., relevant roles, existing tools)
-2. Market research or proven upskilling frameworks for AI empowerment`;
+Team Context:
+- Team Size: ${userData.teamSize || 'Not specified'}
+- Current Tools: ${userData.currentSoftware?.join(', ') || 'None specified'}
+- AI Tools of Interest: ${userData.aiToolsOfInterest?.join(', ') || 'None specified'}
+- Key Challenges: ${userData.keyChallenges?.join(', ') || 'None specified'}
+
+Additional insights:
+${exaResults.map(r => `- ${r.snippet}`).join('\n')}`;
       break;
       
     case 'aiPersonas':
@@ -79,7 +119,7 @@ Include detailed, actionable strategies based on:
 Incorporate actionable insights and any industry research relevant to designing effective AI "org charts."`;
       break;
       
-    case 'chatbot':
+    case 'customerChatbot':
       systemPrompt = `You are a customer experience and AI consultant skilled in developing impactful support chatbots. The user wants a customer-facing chatbot that answers FAQs, showcases the company's products/services, and aligns with brand guidelines. Please create a detailed chatbot document in Markdown format that:
 
 - Defines the chatbot's persona (tone, style, do's/don'ts)
@@ -106,70 +146,22 @@ Incorporate actionable recommendations drawn from:
       break;
   }
 
-  // Build the user prompt with enriched data
-  const userPrompt = `
-Business Context:
--- Company: ${userData.businessName}
--- Industry: ${userData.industry}
-${userData.teamSize ? `- Team Size: ${userData.teamSize}` : ''}
-${userData.currentTools ? `- Current Tools: ${userData.currentTools.join(', ')}` : ''}
+  const openai = getOpenAIClient();
+  
+  try {
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4-1106-preview",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: "Generate the document following the above instructions." }
+      ],
+      temperature: 0.7,
+      max_tokens: 4000
+    });
 
-${userData.overview ? `
-AI Integration Plan Overview:
-${userData.overview.businessOverview ? `
-Business Overview:
-${userData.overview.businessOverview}` : ''}
-
-${userData.overview.keyChallenges?.length ? `
-Key Challenges:
-${userData.overview.keyChallenges.map(c => `- ${c}`).join('\n')}` : ''}
-
-${userData.overview.strengths?.length ? `
-Strengths:
-${userData.overview.strengths.map(s => `- ${s}`).join('\n')}` : ''}
-
-${userData.overview.integrationOpportunities?.length ? `
-Integration Opportunities:
-${userData.overview.integrationOpportunities.map(o => `- ${o}`).join('\n')}` : ''}
-
-${userData.overview.implementationConsiderations ? `
-Implementation Considerations:
-${userData.overview.implementationConsiderations}` : ''}
-
-${userData.overview.timeline ? `
-Timeline:
-${Object.entries(userData.overview.timeline)
-  .map(([phase, tasks]) => `
-${phase}:
-${tasks.map(t => `- ${t}`).join('\n')}`)
-  .join('\n')}` : ''}
-
-${userData.overview.trainingNeeds?.length ? `
-Training Needs:
-${userData.overview.trainingNeeds.map(t => `- ${t}`).join('\n')}` : ''}
-
-${userData.overview.complianceAndSecurity ? `
-Compliance & Security:
-${userData.overview.complianceAndSecurity}` : ''}
-` : ''}
-
-Industry Research and Insights:
-${exaResults.map(result => `
-Source: ${result.title}
-${result.content}
-Reference: ${result.url}
-`).join('\n')}
-
-Please create a comprehensive ${docType} document that incorporates these insights.
-Format the response in clean, well-structured markdown with proper headings, lists, and code blocks where appropriate.`;
-
-  const completion = await openai.chat.completions.create({
-    messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: userPrompt }
-    ],
-    model: "gpt-4-1106-preview",
-  });
-
-  return completion.choices[0].message.content || '';
+    return completion.choices[0]?.message?.content || 'Failed to generate document';
+  } catch (error) {
+    console.error('OpenAI API error:', error);
+    throw new Error('Failed to generate document content');
+  }
 }

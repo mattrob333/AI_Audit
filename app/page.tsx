@@ -18,19 +18,27 @@ export default function Page() {
     aiSummary: string
     userDescription: string
   } | null>(null)
+  const [summaryGenerated, setSummaryGenerated] = useState(false)
 
   const handleNext = () => {
-    if (!formData?.businessUrl || !formData?.aiSummary) {
+    if (!formData?.aiSummary || !formData?.userDescription || !summaryGenerated) {
       toast({
         title: "Missing Information",
-        description: "Please enter your company URL and generate an AI analysis before proceeding.",
+        description: "Please fill in your AI Vision and generate an AI analysis before proceeding.",
         variant: "destructive",
       })
       return
     }
 
+    // Log data before saving
+    console.log('Saving step 1 data:', formData);
+
     // Save step 1 data
     localStorage.setItem('step1Data', JSON.stringify(formData))
+    
+    // Verify data was saved correctly
+    const savedData = localStorage.getItem('step1Data');
+    console.log('Saved step 1 data:', savedData);
     
     // Navigate to the existing step-2 page
     router.push('/step-2')
@@ -56,13 +64,18 @@ export default function Page() {
             </p>
           </div>
 
-          <ProjectForm onFormDataChange={setFormData} />
+          <ProjectForm 
+            onFormDataChange={setFormData} 
+            onSummaryGenerated={() => setSummaryGenerated(true)} 
+            onNext={handleNext}
+          />
 
           <div className="mt-8 flex justify-end">
             <Button 
               onClick={handleNext}
               size="lg"
               className="bg-emerald-500 hover:bg-emerald-600 text-neutral-900"
+              disabled={!formData?.aiSummary || !summaryGenerated}
             >
               Next Step
               <ArrowRight className="ml-2 h-4 w-4" />
