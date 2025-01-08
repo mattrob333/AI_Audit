@@ -4,8 +4,8 @@ import { cn } from '@/lib/utils'
 
 const steps = [
   { number: 1, label: 'Business Overview' },
-  { number: 2, label: 'Team & Software' },
-  { number: 3, label: 'Company Audit' },
+  { number: 2, label: 'Team & Technology' },
+  { number: 3, label: 'Process & Performance Audit' },
   { number: 4, label: 'Recommendations' },
   { number: 5, label: 'Final Review' },
 ]

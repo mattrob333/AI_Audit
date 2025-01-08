@@ -40,13 +40,34 @@ export default function Step2Page() {
         
         <div className="px-8 py-12 min-h-[calc(100vh-4rem)]">
           <div className="max-w-[90rem] mx-auto">
-            <div className="mb-12">
-              <h1 className="text-4xl font-bold tracking-tight text-neutral-50 mb-3">
-                Team & Tech Stack
-              </h1>
-              <p className="text-lg text-neutral-400">
-                Provide details on your team's structure, roles, and current tools. We'll use this to identify skill gaps and guide AI integration.
-              </p>
+            <div className="space-y-6 mb-12">
+              <div className="space-y-2">
+                <h1 className="text-4xl font-bold tracking-tight text-neutral-50">
+                  Meet Your Team & Explore Your Tech Stack
+                </h1>
+                <p className="text-lg text-neutral-400">
+                  Identify your team members' roles, responsibilities, and the tools they currently use.
+                </p>
+              </div>
+
+              <div className="space-y-4 p-4 bg-neutral-900/50 rounded-lg border border-neutral-800">
+                <div className="space-y-2">
+                  <h2 className="font-medium text-neutral-300">What We'll Need:</h2>
+                  <ul className="list-disc list-inside space-y-1 text-neutral-400">
+                    <li>A list of your team members (names, emails, roles)</li>
+                    <li>Quick details on their daily tasks and communication preferences</li>
+                    <li>Current software, platforms, or AI tools (e.g., Slack, Salesforce, Midjourney)</li>
+                  </ul>
+                </div>
+
+                <div className="space-y-2">
+                  <h2 className="font-medium text-neutral-300">Why It Matters:</h2>
+                  <ul className="list-disc list-inside space-y-1 text-neutral-400">
+                    <li>This helps us spot skill gaps and integration possibilities.</li>
+                    <li>When each team member contributes their info, we can tailor AI solutions more precisely.</li>
+                  </ul>
+                </div>
+              </div>
             </div>
 
             <div className="space-y-8">

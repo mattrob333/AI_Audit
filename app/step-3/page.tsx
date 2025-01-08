@@ -86,13 +86,34 @@ export default function Step3Page() {
         
         <div className="px-8 py-12 min-h-[calc(100vh-4rem)]">
           <div className="max-w-[90rem] mx-auto">
-            <div className="mb-12">
-              <h1 className="text-4xl font-bold tracking-tight text-neutral-50 mb-3">
-                Company Audit
-              </h1>
-              <p className="text-lg text-neutral-400">
-                Answer these questions to help us tailor your AI integration plan.
-              </p>
+            <div className="space-y-6 mb-12">
+              <div className="space-y-2">
+                <h1 className="text-4xl font-bold tracking-tight text-neutral-50">
+                  Pinpoint Your Workflows & Bottlenecks
+                </h1>
+                <p className="text-lg text-neutral-400">
+                  Provide deeper insight into your processes so we can find high-impact AI solutions.
+                </p>
+              </div>
+
+              <div className="space-y-4 p-4 bg-neutral-900/50 rounded-lg border border-neutral-800">
+                <div className="space-y-2">
+                  <h2 className="font-medium text-neutral-300">What We'll Need:</h2>
+                  <ul className="list-disc list-inside space-y-1 text-neutral-400">
+                    <li>Details on key workflows or processes (e.g., lead management, invoice handling)</li>
+                    <li>Known pain points or bottlenecks (time sinks, manual tasks, error-prone steps)</li>
+                    <li>Current data handling practices (where data is stored, data privacy)</li>
+                  </ul>
+                </div>
+
+                <div className="space-y-2">
+                  <h2 className="font-medium text-neutral-300">Why It Matters:</h2>
+                  <ul className="list-disc list-inside space-y-1 text-neutral-400">
+                    <li>The more we know about your operational flow, the better we can recommend AI automations.</li>
+                    <li>Targeted questions help us diagnose exactly where AI will have the most impact.</li>
+                  </ul>
+                </div>
+              </div>
             </div>
 
             {error ? (
