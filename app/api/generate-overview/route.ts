@@ -74,6 +74,7 @@ Generate a detailed analysis in this exact JSON structure:
         model: "gpt-4",
         messages,
         temperature: 0.7,
+        response_format: { type: 'json_object' }
       });
     } catch (error) {
       console.error('OpenAI API error:', error);

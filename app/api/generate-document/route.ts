@@ -5,8 +5,6 @@ import { generateDocumentServer } from '@/lib/server/documents';
 export async function POST(req: Request) {
   try {
     console.log('Starting document generation request...');
-    const body = await req.json();
-    console.log('Request body:', JSON.stringify(body, null, 2));
     
     // Check for OpenAI API key first
     if (!process.env.OPENAI_API_KEY) {
@@ -16,10 +14,26 @@ export async function POST(req: Request) {
         { status: 500 }
       );
     }
-    console.log('OpenAI API key found');
 
+    // Parse request body
+    let body;
+    try {
+      body = await req.json();
+      console.log('Request body:', JSON.stringify(body, null, 2));
+    } catch (error) {
+      console.error('Error parsing request body:', error);
+      return NextResponse.json(
+        { error: 'Invalid request body format' },
+        { status: 400 }
+      );
+    }
+
+    // Validate required fields
     if (!body.docType || !body.userData) {
-      console.error('Missing required fields in request body');
+      console.error('Missing required fields:', {
+        hasDocType: Boolean(body.docType),
+        hasUserData: Boolean(body.userData)
+      });
       return NextResponse.json(
         { error: 'Missing required fields: docType and userData' },
         { status: 400 }
@@ -27,8 +41,6 @@ export async function POST(req: Request) {
     }
 
     const { docType, userData } = body;
-    console.log('Document type:', docType);
-    console.log('User data:', JSON.stringify(userData, null, 2));
 
     // Validate userData has required fields
     if (!userData.aiSummary || !userData.userDescription) {
@@ -41,12 +53,11 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
-    console.log('User data validation passed');
 
     try {
       console.log('Calling generateDocumentServer...');
-      const document = await generateDocumentServer(docType as DocumentType, userData);
-      if (!document) {
+      const result = await generateDocumentServer(docType as DocumentType, userData);
+      if (!result || !result.document) {
         console.error('No document content generated');
         return NextResponse.json(
           { error: 'Failed to generate document content' },
@@ -55,18 +66,20 @@ export async function POST(req: Request) {
       }
       console.log('Document generated successfully');
 
-      return NextResponse.json({ document });
+      return NextResponse.json(result);
     } catch (error) {
       console.error('Error generating document:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to generate document';
       return NextResponse.json(
-        { error: 'Failed to generate document' },
+        { error: errorMessage },
         { status: 500 }
       );
     }
   } catch (error) {
     console.error('Error processing request:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Internal server error';
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: errorMessage },
       { status: 500 }
     );
   }

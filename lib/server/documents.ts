@@ -71,7 +71,7 @@ async function enrichPromptWithExaData(docType: DocumentType, userData: UserData
   }
 }
 
-export async function generateDocumentServer(docType: DocumentType, userData: UserData): Promise<string> {
+export async function generateDocumentServer(docType: DocumentType, userData: UserData): Promise<{ document: string }> {
   // Get relevant external data from Exa (will be empty if no API key)
   const exaResults = await enrichPromptWithExaData(docType, userData);
   
@@ -88,7 +88,15 @@ export async function generateDocumentServer(docType: DocumentType, userData: Us
 - Maintains an encouraging tone, reinforcing their momentum and readiness to embrace AI innovations
 
 Additional context:
-${exaResults.map(r => `- ${r.content}`).join('\n')}`;
+${exaResults.map(r => `- ${r.content}`).join('\n')}
+
+IMPORTANT: Your response must be valid JSON with this exact structure:
+{
+  "content": "YOUR_MARKDOWN_CONTENT_HERE"
+}
+
+Replace YOUR_MARKDOWN_CONTENT_HERE with your executive summary in markdown format.
+Do not include any additional fields in the JSON.`;
       break;
       
     case 'upskilling':
@@ -99,13 +107,15 @@ ${exaResults.map(r => `- ${r.content}`).join('\n')}`;
 - Specifies practical steps, recommended learning milestones, and ongoing support resources
 
 Team Context:
-- Team Size: ${userData.teamSize || 'Not specified'}
-- Current Tools: ${userData.currentSoftware?.join(', ') || 'None specified'}
-- AI Tools of Interest: ${userData.aiToolsOfInterest?.join(', ') || 'None specified'}
-- Key Challenges: ${userData.keyChallenges?.join(', ') || 'None specified'}
+${userData.teamMembers ? JSON.stringify(userData.teamMembers, null, 2) : 'No team data provided'}
 
-Additional insights:
-${exaResults.map(r => `- ${r.content}`).join('\n')}`;
+IMPORTANT: Your response must be valid JSON with this exact structure:
+{
+  "content": "YOUR_MARKDOWN_CONTENT_HERE"
+}
+
+Replace YOUR_MARKDOWN_CONTENT_HERE with your upskilling document in markdown format.
+Do not include any additional fields in the JSON.`;
       break;
       
     case 'aiPersonas':
@@ -117,7 +127,15 @@ ${exaResults.map(r => `- ${r.content}`).join('\n')}`;
 - Includes example interactions and use cases
 
 Market research:
-${exaResults.map(r => `- ${r.content}`).join('\n')}`;
+${exaResults.map(r => `- ${r.content}`).join('\n')}
+
+IMPORTANT: Your response must be valid JSON with this exact structure:
+{
+  "content": "YOUR_MARKDOWN_CONTENT_HERE"
+}
+
+Replace YOUR_MARKDOWN_CONTENT_HERE with your AI personas document in markdown format.
+Do not include any additional fields in the JSON.`;
       break;
       
     case 'customerChatbot':
@@ -129,7 +147,15 @@ ${exaResults.map(r => `- ${r.content}`).join('\n')}`;
 - Includes example conversation flows and edge cases to handle
 
 Similar implementations:
-${exaResults.map(r => `- ${r.content}`).join('\n')}`;
+${exaResults.map(r => `- ${r.content}`).join('\n')}
+
+IMPORTANT: Your response must be valid JSON with this exact structure:
+{
+  "content": "YOUR_MARKDOWN_CONTENT_HERE"
+}
+
+Replace YOUR_MARKDOWN_CONTENT_HERE with your customer chatbot strategy document in markdown format.
+Do not include any additional fields in the JSON.`;
       break;
       
     case 'automationPlan':
@@ -141,29 +167,54 @@ ${exaResults.map(r => `- ${r.content}`).join('\n')}`;
 - Includes success metrics and ROI calculations
 
 Industry best practices:
-${exaResults.map(r => `- ${r.content}`).join('\n')}`;
+${exaResults.map(r => `- ${r.content}`).join('\n')}
+
+IMPORTANT: Your response must be valid JSON with this exact structure:
+{
+  "content": "YOUR_MARKDOWN_CONTENT_HERE"
+}
+
+Replace YOUR_MARKDOWN_CONTENT_HERE with your automation plan in markdown format.
+Do not include any additional fields in the JSON.`;
       break;
 
     default:
       throw new Error(`Unsupported document type: ${docType}`);
   }
 
-  const openai = getOpenAIClient();
-  
+  // Call OpenAI API
   try {
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4-1106-preview",
+    console.log('Calling OpenAI API...');
+    const completion = await getOpenAIClient().chat.completions.create({
+      model: 'gpt-4o',
       messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: "Generate the document following the above instructions." }
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: 'Generate the document now.' }
       ],
       temperature: 0.7,
-      max_tokens: 4000
+      response_format: { type: 'json_object' }  // Enforce JSON response format
     });
 
-    return completion.choices[0]?.message?.content || 'Failed to generate document';
+    const content = completion.choices[0]?.message?.content;
+    if (!content) {
+      throw new Error('No content in OpenAI response');
+    }
+
+    try {
+      // Parse the JSON response
+      const parsedResponse = JSON.parse(content.trim());
+      if (!parsedResponse.content || typeof parsedResponse.content !== 'string') {
+        throw new Error('Invalid response format from OpenAI');
+      }
+
+      return { document: parsedResponse.content };
+    } catch (parseError) {
+      console.error('Error parsing OpenAI response:', parseError);
+      console.log('Raw response:', content);
+      throw new Error('Failed to parse OpenAI response as JSON');
+    }
   } catch (error) {
-    console.error('OpenAI API error:', error);
-    throw new Error('Failed to generate document content');
+    console.error('Error generating document:', error);
+    throw error;
   }
 }
