@@ -10,21 +10,7 @@ import { AIToolsSelection } from '@/components/ai-tools-selection'
 import { Sidebar } from '@/components/sidebar'
 import { HelpPanel } from '@/components/help-panel'
 import { ArrowRight } from 'lucide-react'
-
-interface TeamMember {
-  name: string;
-  role: string;
-  responsibilities: string;
-  email?: string;
-  enneagramType?: string;
-  department?: string;
-  communicationPreferences: {
-    email: boolean;
-    sms: boolean;
-    call: boolean;
-    slack: boolean;
-  };
-}
+import { TeamMember, TeamDetails } from '@/lib/types'
 
 export default function Step2Page() {
   const router = useRouter()
@@ -33,8 +19,9 @@ export default function Step2Page() {
   const [selectedAITools, setSelectedAITools] = React.useState<string[]>([])
 
   const handleNext = () => {
-    const teamDetails = {
+    const teamDetails: TeamDetails = {
       teamMembers,
+      teamSize: teamMembers.length,
       currentSoftware: selectedSoftware,
       aiToolsOfInterest: selectedAITools,
     }

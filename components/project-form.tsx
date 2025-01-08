@@ -8,24 +8,17 @@ import { Loader2, Mic, FileText, ArrowRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import ReactMarkdown from 'react-markdown'
+import { BusinessDetails } from '@/lib/types'
 
 const FLOWISE_API_URL = 'https://flowise-jc8z.onrender.com/api/v1/prediction/'
 const CHATFLOW_ID = 'a4604503-0f4c-4047-925c-419ca43664ba'
 
 interface ProjectFormProps {
-  formData: {
-    businessUrl: string
-    aiSummary: string
-    userDescription: string
-  } | null
-  setFormData: (data: {
-    businessUrl: string
-    aiSummary: string
-    userDescription: string
-  }) => void
+  formData: BusinessDetails | null
+  setFormData: (data: BusinessDetails) => void
   summaryGenerated: boolean
   setSummaryGenerated: (generated: boolean) => void
-  onFormDataChange?: (data: any) => void
+  onFormDataChange?: (data: BusinessDetails) => void
   onSummaryGenerated?: () => void
   onNext?: () => void
 }
@@ -86,11 +79,11 @@ export function ProjectForm({
           
           const { transcription } = await response.json()
           setFormData({
-            businessUrl: formData?.businessUrl || '',
-            aiSummary: formData?.aiSummary || '',
             userDescription: formData?.userDescription 
               ? `${formData.userDescription}\n${transcription}`
               : transcription,
+            businessUrl: formData?.businessUrl || '',
+            aiSummary: formData?.aiSummary || ''
           })
         } catch (error) {
           console.error('Error transcribing audio:', error)

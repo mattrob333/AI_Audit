@@ -6,21 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-
-export interface TeamMember {
-  name: string;
-  role: string;
-  responsibilities: string;
-  email?: string;
-  enneagramType?: string;
-  department?: string;
-  communicationPreferences: {
-    email: boolean;
-    sms: boolean;
-    call: boolean;
-    slack: boolean;
-  }
-}
+import { TeamMember } from '@/lib/types';
 
 interface TeamMemberSectionProps {
   teamMembers: TeamMember[];
@@ -39,17 +25,27 @@ export function TeamMemberSection({ teamMembers, onChange }: TeamMemberSectionPr
   };
 
   const addTeamMember = () => {
-    onChange([...teamMembers, {
+    const newMember: TeamMember = {
+      id: crypto.randomUUID(),
       name: '',
       role: '',
       responsibilities: '',
+      email: '',
+      inviteStatus: 'not_invited',
       communicationPreferences: {
         email: false,
         sms: false,
         call: false,
         slack: false
+      },
+      details: {
+        department: '',
+        reportsTo: '',
+        enneagramType: undefined,
+        aiSkills: []
       }
-    }]);
+    };
+    onChange([...teamMembers, newMember]);
   };
 
   const removeTeamMember = (index: number) => {
@@ -58,10 +54,20 @@ export function TeamMemberSection({ teamMembers, onChange }: TeamMemberSectionPr
     onChange(newMembers);
   };
 
-  const updateTeamMember = (index: number, field: keyof TeamMember, value: any) => {
-    const newMembers = [...teamMembers];
-    newMembers[index] = { ...newMembers[index], [field]: value };
-    onChange(newMembers);
+  const updateTeamMember = (index: number, field: keyof TeamMember | 'details', value: any) => {
+    const updatedMembers = [...teamMembers];
+    const member = { ...updatedMembers[index] };
+
+    if (field === 'details') {
+      member.details = value;
+    } else if (field === 'communicationPreferences') {
+      member.communicationPreferences = value;
+    } else {
+      (member as any)[field] = value;
+    }
+
+    updatedMembers[index] = member;
+    onChange(updatedMembers);
   };
 
   const updateCommunicationPreference = (index: number, preference: keyof TeamMember['communicationPreferences'], value: boolean) => {
@@ -81,15 +87,24 @@ export function TeamMemberSection({ teamMembers, onChange }: TeamMemberSectionPr
       
       const members: TeamMember[] = rows.slice(1).map(row => {
         const values = row.split(',').map(v => v.trim());
-        const member: Partial<TeamMember> = {
+        const member: TeamMember = {
+          id: crypto.randomUUID(),
           name: '',
           role: '',
           responsibilities: '',
+          email: '',
+          inviteStatus: 'not_invited',
           communicationPreferences: {
             email: false,
             sms: false,
             call: false,
             slack: false
+          },
+          details: {
+            department: '',
+            reportsTo: '',
+            enneagramType: undefined,
+            aiSkills: []
           }
         };
         
@@ -110,28 +125,16 @@ export function TeamMemberSection({ teamMembers, onChange }: TeamMemberSectionPr
             case 'email':
               member.email = value;
               break;
-            case 'enneagramtype':
-              member.enneagramType = value;
-              break;
             case 'department':
-              member.department = value;
+              if (member.details) member.details.department = value;
               break;
-            case 'email_comm':
-              if (member.communicationPreferences) member.communicationPreferences.email = value.toLowerCase() === 'true';
-              break;
-            case 'sms_comm':
-              if (member.communicationPreferences) member.communicationPreferences.sms = value.toLowerCase() === 'true';
-              break;
-            case 'call_comm':
-              if (member.communicationPreferences) member.communicationPreferences.call = value.toLowerCase() === 'true';
-              break;
-            case 'slack_comm':
-              if (member.communicationPreferences) member.communicationPreferences.slack = value.toLowerCase() === 'true';
+            case 'reportsto':
+              if (member.details) member.details.reportsTo = value;
               break;
           }
         });
         
-        return member as TeamMember;
+        return member;
       });
 
       onChange(members);
@@ -148,12 +151,8 @@ export function TeamMemberSection({ teamMembers, onChange }: TeamMemberSectionPr
       'Role',
       'Responsibilities',
       'Email',
-      'EnneagramType',
       'Department',
-      'Email_Comm',
-      'SMS_Comm',
-      'Call_Comm',
-      'Slack_Comm'
+      'ReportsTo'
     ].join(',');
 
     const exampleRow = [
@@ -161,12 +160,8 @@ export function TeamMemberSection({ teamMembers, onChange }: TeamMemberSectionPr
       'Software Engineer',
       'Development and maintenance of core features',
       'john@example.com',
-      'Type 5',
       'Engineering',
-      'true',
-      'false',
-      'true',
-      'true'
+      'Jane Doe'
     ].join(',');
 
     const template = [headers, exampleRow].join('\n');
@@ -243,17 +238,23 @@ export function TeamMemberSection({ teamMembers, onChange }: TeamMemberSectionPr
                     className="bg-neutral-800 border-neutral-700 text-neutral-200 placeholder:text-neutral-500"
                   />
                   <Input
-                    placeholder="Enneagram Type"
-                    value={member.enneagramType}
-                    onChange={(e) => updateTeamMember(index, 'enneagramType', e.target.value)}
+                    placeholder="Department"
+                    value={member.details?.department || ''}
+                    onChange={(e) => {
+                      const details = member.details || {};
+                      updateTeamMember(index, 'details', { ...details, department: e.target.value });
+                    }}
                     className="bg-neutral-800 border-neutral-700 text-neutral-200 placeholder:text-neutral-500"
                   />
                 </div>
                 <div className="space-y-4">
                   <Input
-                    placeholder="Department"
-                    value={member.department}
-                    onChange={(e) => updateTeamMember(index, 'department', e.target.value)}
+                    placeholder="Reports To"
+                    value={member.details?.reportsTo || ''}
+                    onChange={(e) => {
+                      const details = member.details || {};
+                      updateTeamMember(index, 'details', { ...details, reportsTo: e.target.value });
+                    }}
                     className="bg-neutral-800 border-neutral-700 text-neutral-200 placeholder:text-neutral-500"
                   />
                   <div className="space-y-2">

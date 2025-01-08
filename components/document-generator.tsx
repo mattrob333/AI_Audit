@@ -8,7 +8,7 @@ import rehypeSanitize from 'rehype-sanitize';
 import { useState, useEffect } from 'react';
 import { Check, ChevronLeft, ChevronRight, Download, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { DocumentType, Step1Data, Step2Data, Step3Data } from '@/lib/types';
+import { DocumentType, BusinessDetails, TeamDetails, BusinessOverview } from '@/lib/types';
 import { useDocumentStore } from '@/lib/store';
 import { documentSteps } from '@/lib/document-steps';
 import JSZip from 'jszip';
@@ -28,9 +28,9 @@ export function DocumentGenerator({
   const [generatedDocuments, setGeneratedDocuments] = useState<GeneratedDocuments>({});
   const [generationStatus, setGenerationStatus] = useState<'idle' | 'loading'>('idle');
   const [error, setError] = useState<string | null>(null);
-  const [step1Data, setStep1Data] = useState<Step1Data | null>(null);
-  const [step2Data, setStep2Data] = useState<Step2Data | null>(null);
-  const [step3Data, setStep3Data] = useState<Step3Data | null>(null);
+  const [step1Data, setStep1Data] = useState<BusinessDetails | null>(null);
+  const [step2Data, setStep2Data] = useState<TeamDetails | null>(null);
+  const [step3Data, setStep3Data] = useState<BusinessOverview | null>(null);
 
   // Load data from localStorage on mount
   useEffect(() => {
@@ -78,7 +78,7 @@ export function DocumentGenerator({
     setGenerationStatus('loading');
     setError(null);
 
-    if (!step1Data?.aiSummary || !step1Data?.userDescription) {
+    if (!step1Data?.businessUrl || !step1Data?.aiSummary || !step1Data?.userDescription) {
       setError('Missing required business details. Please complete Step 1 first.');
       setGenerationStatus('idle');
       return;

@@ -20,6 +20,12 @@ export interface TeamMember {
   responsibilities: string;
   email: string;
   inviteStatus: 'not_invited' | 'invited' | 'completed';
+  communicationPreferences: {
+    email: boolean;
+    sms: boolean;
+    call: boolean;
+    slack: boolean;
+  };
   details?: {
     department?: string;
     reportsTo?: string;

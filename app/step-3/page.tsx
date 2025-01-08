@@ -8,6 +8,7 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Sidebar } from '@/components/sidebar'
 import { HelpPanel } from '@/components/help-panel'
+import { BusinessDetails, TeamDetails } from '@/lib/types'
 
 export default function Step3Page() {
   const router = useRouter()
@@ -21,8 +22,8 @@ export default function Step3Page() {
         setLoading(true)
         setError('')
         
-        const businessDetails = JSON.parse(localStorage.getItem('step1Data') || '{}')
-        const teamDetails = JSON.parse(localStorage.getItem('teamDetails') || '{}')
+        const businessDetails: BusinessDetails = JSON.parse(localStorage.getItem('step1Data') || '{}')
+        const teamDetails: TeamDetails = JSON.parse(localStorage.getItem('teamDetails') || '{}')
 
         if (!businessDetails.businessUrl || !businessDetails.aiSummary || !teamDetails.teamMembers) {
           setError('Please complete the previous steps first')
