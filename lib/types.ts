@@ -5,14 +5,14 @@ export type DocumentType =
   | 'customerChatbot'
   | 'automationPlan';
 
-// Step 1 Data
-export interface Step1Data {
+// Business Details (Step 1)
+export interface BusinessDetails {
   businessUrl: string;
   aiSummary: string;
   userDescription: string;
 }
 
-// Step 2 Data
+// Team Details (Step 2)
 export interface TeamMember {
   id: string;
   name: string;
@@ -31,15 +31,15 @@ export interface TeamMember {
   }
 }
 
-export interface Step2Data {
+export interface TeamDetails {
   teamSize: number;
   teamMembers: TeamMember[];
   currentSoftware: string[];
   aiToolsOfInterest: string[];
 }
 
-// Step 3 Data
-export interface Step3Data {
+// Business Overview (Step 3)
+export interface BusinessOverview {
   keyChallenges: string[];
   strengths: string[];
   integrationOpportunities: string[];
@@ -47,6 +47,12 @@ export interface Step3Data {
   timeline: Record<string, string[]>;
   trainingNeeds: string[];
   complianceAndSecurity: string;
+}
+
+// Audit Answers
+export interface AuditAnswer {
+  question: string;
+  answer: string;
 }
 
 // Document Generation Types
