@@ -3,7 +3,7 @@
 import { cn } from '@/lib/utils'
 
 const steps = [
-  { number: 1, label: 'Business Details' },
+  { number: 1, label: 'Business Overview' },
   { number: 2, label: 'Team & Software' },
   { number: 3, label: 'Company Audit' },
   { number: 4, label: 'Recommendations' },
@@ -46,7 +46,7 @@ export function ProgressSteps({
                 variant === 'horizontal' && 'flex-1',
                 variant === 'vertical' && 'px-4 py-2',
                 variant === 'vertical' && isCompleted && 'bg-emerald-500/10',
-                variant === 'vertical' && isCurrent && 'bg-neutral-800/50',
+                variant === 'vertical' && isCurrent && 'bg-emerald-500/20',
                 variant === 'vertical' && !isCompleted && !isCurrent && 'hover:bg-neutral-800/20'
               )}
             >
@@ -61,7 +61,7 @@ export function ProgressSteps({
                   className={cn(
                     'flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs',
                     isCompleted && 'bg-emerald-500 text-neutral-900',
-                    isCurrent && 'bg-neutral-600 text-neutral-200',
+                    isCurrent && 'bg-emerald-500 text-neutral-900',
                     !isCompleted && !isCurrent && 'bg-neutral-800/50 text-neutral-500'
                   )}
                 >
@@ -71,7 +71,7 @@ export function ProgressSteps({
                   className={cn(
                     'ml-3 whitespace-nowrap font-medium',
                     isCompleted && 'text-emerald-500',
-                    isCurrent && 'text-neutral-200',
+                    isCurrent && 'text-emerald-500',
                     !isCompleted && !isCurrent && 'text-neutral-500'
                   )}
                 >
