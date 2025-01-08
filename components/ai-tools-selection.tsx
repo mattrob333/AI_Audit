@@ -56,7 +56,7 @@ export function AIToolsSelection({
   selected: string[]
   onSelect: (tools: string[]) => void
 }) {
-  const handleToggle = (toolId: string) => {
+  const handleSelect = (toolId: string) => {
     const newSelected = selected.includes(toolId)
       ? selected.filter(id => id !== toolId)
       : [...selected, toolId]
@@ -64,54 +64,43 @@ export function AIToolsSelection({
   }
 
   return (
-    <Card className="border border-neutral-800 bg-black">
-      <CardHeader className="border-b border-neutral-800">
-        <CardTitle className="text-xl font-semibold text-neutral-50">AI Tools You Use or Want to Explore</CardTitle>
-        <CardDescription className="text-neutral-400">
-          Check any AI solutions you're currently using or curious about. Not sure? Select what you've heard of or skip to let us recommend later.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="p-6">
-        <div className="rounded-lg border border-neutral-800 bg-black p-6">
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {aiTools.map(tool => (
-              <div
-                key={tool.id}
-                className="relative flex items-center space-x-2 rounded-lg border border-neutral-800 bg-black/40 p-4"
-              >
-                <input
-                  type="checkbox"
-                  id={tool.id}
-                  checked={selected.includes(tool.id)}
-                  onChange={() => handleToggle(tool.id)}
-                  className="h-4 w-4 rounded border-primary text-primary"
-                />
-                <label
-                  htmlFor={tool.id}
-                  className="flex flex-1 cursor-pointer items-center justify-between"
-                >
-                  <span className="text-sm font-medium">{tool.name}</span>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 shrink-0"
-                      >
-                        <Info className="h-4 w-4" />
-                        <span className="sr-only">Learn more about {tool.name}</span>
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="right" align="start">
-                      <p className="max-w-xs">{tool.description}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </label>
-              </div>
-            ))}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-xl font-semibold text-neutral-200 mb-2">AI Tools Experience</h2>
+        <p className="text-neutral-400">
+          Select AI tools you're currently using or interested in exploring. This helps us understand your AI readiness.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {aiTools.map((tool) => (
+          <button
+            key={tool.id}
+            onClick={() => handleSelect(tool.id)}
+            className={`flex flex-col rounded-lg border p-4 transition-colors ${
+              selected.includes(tool.id)
+                ? 'border-emerald-500/50 bg-emerald-500/10'
+                : 'border-neutral-800 bg-neutral-900/50 hover:border-neutral-700 hover:bg-neutral-800'
+            }`}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span className={`font-medium ${
+                selected.includes(tool.id) ? 'text-emerald-500' : 'text-neutral-200'
+              }`}>
+                {tool.name}
+              </span>
+              {selected.includes(tool.id) && (
+                <div className="h-2 w-2 rounded-full bg-emerald-500" />
+              )}
+            </div>
+            <p className={`text-sm ${
+              selected.includes(tool.id) ? 'text-emerald-500/70' : 'text-neutral-400'
+            }`}>
+              {tool.description}
+            </p>
+          </button>
+        ))}
+      </div>
+    </div>
   )
 }

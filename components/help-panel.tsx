@@ -5,7 +5,13 @@ import { Button } from '@/components/ui/button'
 import { QuestionMarkCircledIcon, Cross2Icon } from '@radix-ui/react-icons'
 import { cn } from '@/lib/utils'
 
-export function HelpPanel({ className }: { className?: string }) {
+export function HelpPanel({
+  className,
+  children
+}: {
+  className?: string;
+  children: React.ReactNode;
+}) {
   const [isOpen, setIsOpen] = React.useState(false)
 
   return (
@@ -34,49 +40,7 @@ export function HelpPanel({ className }: { className?: string }) {
           </div>
 
           <div className="space-y-6">
-            <div className="space-y-3">
-              <h4 className="text-sm font-medium text-emerald-500">AI Audit Guide</h4>
-              <h5 className="text-sm font-medium text-neutral-300">Why This Step Is Important:</h5>
-              <ul className="text-sm text-neutral-400 space-y-2">
-                <li className="flex gap-2">
-                  <span>→</span>
-                  <span>Context is Key: By understanding your business situation, we can tailor AI solutions to your specific needs.</span>
-                </li>
-                <li className="flex gap-2">
-                  <span>→</span>
-                  <span>Saves You Time: You only need to enter your URL or speak your thoughts, and we'll do the heavy lifting.</span>
-                </li>
-                <li className="flex gap-2">
-                  <span>→</span>
-                  <span>Personalized Roadmap: The more we know about your situation, the better our recommendations.</span>
-                </li>
-              </ul>
-            </div>
-
-            <div className="space-y-3">
-              <h4 className="text-sm font-medium text-emerald-500">Available Tools</h4>
-              <ul className="text-sm text-neutral-400 space-y-2">
-                <li className="flex gap-2">
-                  <span>•</span>
-                  <span>AI Business Analyzer</span>
-                </li>
-                <li className="flex gap-2">
-                  <span>•</span>
-                  <span>Voice Input Recognition</span>
-                </li>
-                <li className="flex gap-2">
-                  <span>•</span>
-                  <span>Smart Recommendations Engine</span>
-                </li>
-              </ul>
-            </div>
-
-            <div className="space-y-3">
-              <h4 className="text-sm font-medium text-emerald-500">What Happens Next</h4>
-              <p className="text-sm text-neutral-400">
-                After this step, we'll analyze your tech stack and team structure to identify the best AI integration points for your organization.
-              </p>
-            </div>
+            {children}
           </div>
         </div>
       )}

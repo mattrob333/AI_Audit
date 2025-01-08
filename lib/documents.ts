@@ -1,5 +1,5 @@
-import { Configuration, OpenAIApi } from 'openai';
-import { openai } from './openai';
+import OpenAI from 'openai';
+import { getOpenAIClient } from './openai';
 
 export interface ExaSearchResult {
   title: string;
@@ -11,7 +11,7 @@ export type DocumentType =
   | 'executiveSummary'
   | 'upskilling'
   | 'aiPersonas'
-  | 'chatbot'
+  | 'customerChatbot'
   | 'automationPlan';
 
 type UserData = {
@@ -55,7 +55,7 @@ async function enrichPromptWithExaData(docType: DocumentType, userData: UserData
     case 'upskilling':
       return await searchExa('industry', userData.industry);
     case 'aiPersonas':
-    case 'chatbot':
+    case 'customerChatbot':
     case 'automationPlan':
       return await searchExa('useCases', userData.industry);
     default:
@@ -95,7 +95,7 @@ Business Overview and Analysis:
 ${JSON.stringify(data.overview, null, 2)}
 
 Additional Research Context:
-${data.searchResults.map(result => `${result.title}:\n${result.content}`).join('\n\n')}
+${data.searchResults.map((result: ExaSearchResult) => `${result.title}:\n${result.content}`).join('\n\n')}
 
 Please generate a detailed ${documentType} document in markdown format.`
   };
@@ -110,9 +110,8 @@ export async function generateDocument({
 }: GenerateDocumentParams): Promise<string> {
   // Get relevant search results to enrich the prompt
   const searchResults = await enrichPromptWithExaData(documentType, {
-    businessUrl: businessDetails.businessUrl,
-    aiSummary: businessDetails.aiSummary,
-    teamMembers: teamDetails.teamMembers,
+    businessName: businessDetails.businessName,
+    industry: businessDetails.industry,
     overview
   });
 
@@ -125,7 +124,7 @@ export async function generateDocument({
     searchResults
   });
 
-  const response = await openai.chat.completions.create({
+  const response = await getOpenAIClient().chat.completions.create({
     model: "gpt-4",
     messages: [
       { role: "system", content: prompt.system },

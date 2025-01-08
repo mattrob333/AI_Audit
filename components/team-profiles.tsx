@@ -88,6 +88,7 @@ export function TeamProfiles({
   teamMembers: TeamMember[]
   onTeamMembersChange: (members: TeamMember[]) => void
 }) {
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [teamMembers, setTeamMembers] = React.useState<TeamMember[]>((externalTeamMembers?.length ? externalTeamMembers : [
     {
       id: '1',
@@ -136,284 +137,167 @@ export function TeamProfiles({
     ))
   }
 
-  const updateMemberDetails = (id: string, field: string, value: DetailsValue) => {
-    setTeamMembers(prev => prev.map(member => 
-      member.id === id ? {
-        ...member,
-        details: {
-          ...member.details,
-          [field]: value
-        }
-      } : member
-    ))
-  }
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (file) {
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        const text = e.target?.result as string
-        const rows = text.split('\n')
-          .slice(1) // Skip header
-          .filter(row => row.trim()) // Skip empty rows
-          .map(row => {
-            // Split CSV line properly handling quoted fields and spaces
-            const values = row.match(/(?:^|,)(?:"([^"]*)"|([^,"]*))/g)?.map(value => {
-              // Remove leading comma if present and any surrounding quotes
-              return value.replace(/^,/, '').replace(/^"|"$/g, '').trim();
-            }) || []
-            const [
-              name = '',
-              role = '',
-              responsibilities = '',
-              email = '',
-              department = '',
-              reportsTo = '',
-              enneagramType = ''
-            ] = values
+    try {
+      const text = await file.text();
+      const rows = text.split('\n').map(row => row.trim()).filter(row => row.length > 0);
+      const headers = rows[0].toLowerCase().split(',').map(h => h.trim());
+      
+      const members: TeamMember[] = rows.slice(1).map((row, index) => {
+        const values = row.split(',').map(v => v.trim());
+        const member: Partial<TeamMember> = {};
+        
+        headers.forEach((header, i) => {
+          if (i >= values.length) return;
+          const value = values[i];
+          
+          switch(header) {
+            case 'name':
+            case 'role':
+            case 'responsibilities':
+            case 'email':
+              member[header] = value || '';
+              break;
+          }
+        });
+        
+        return {
+          id: (teamMembers.length + index + 1).toString(),
+          name: member.name || '',
+          role: member.role || '',
+          responsibilities: member.responsibilities || '',
+          email: member.email || '',
+          inviteStatus: 'not_invited',
+          details: {}
+        };
+      });
 
-            if (name || role || responsibilities) {
-              return {
-                id: crypto.randomUUID(),
-                name,
-                role,
-                responsibilities,
-                email,
-                inviteStatus: 'not_invited' as const,
-                details: {
-                  department,
-                  reportsTo,
-                  enneagramType: enneagramType ? {
-                    value: enneagramType,
-                    label: enneagramType
-                  } : undefined,
-                  aiSkills: []
-                }
-              }
-            }
-            return null
-          })
-          .filter(Boolean) as TeamMember[]
-
-        // Replace existing team members instead of appending
-        setTeamMembers(rows)
-      }
-      reader.readAsText(file)
+      setTeamMembers(prev => [...prev, ...members]);
+      if (event.target) event.target.value = '';
+    } catch (error) {
+      console.error('Error parsing CSV:', error);
+      alert('Error parsing CSV file. Please make sure it\'s in the correct format.');
     }
-    // Reset the input so the same file can be uploaded again if needed
-    event.target.value = ''
-  }
+  };
+
+  const downloadTemplate = () => {
+    const template = [
+      ['Name', 'Role', 'Responsibilities', 'Email'].join(','),
+      ['John Doe', 'Software Engineer', 'Development of core features', 'john@example.com'].join(',')
+    ].join('\n');
+
+    const blob = new Blob([template], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'team_template.csv';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
 
   return (
-    <Card className="border border-neutral-800 bg-black">
-      <CardHeader className="border-b border-neutral-800">
-        <CardTitle className="text-xl font-semibold text-neutral-50">Who's On Your Team?</CardTitle>
-        <CardDescription className="text-neutral-400">
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-xl font-semibold text-neutral-200 mb-2">Who's On Your Team?</h2>
+        <p className="text-neutral-400">
           Add team members, their roles, and responsibilities. We'll use this to understand your team structure.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="p-6">
-        <div className="space-y-4">
-          <div className="rounded-md border border-neutral-800 bg-black/40">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-neutral-950">
-                  <TableHead className="w-[250px]">Name</TableHead>
-                  <TableHead className="w-[250px]">Role/Title</TableHead>
-                  <TableHead className="w-[400px]">Responsibilities</TableHead>
-                  <TableHead className="w-[100px]"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {teamMembers.map((member, index) => (
-                  <TableRow key={member.id} className="group">
-                    <TableCell>
-                      <Input
-                        placeholder="Full Name"
-                        value={member.name}
-                        onChange={(e) => updateMember(member.id, 'name', e.target.value)}
-                        className="bg-neutral-950 border-neutral-800 text-neutral-200 placeholder:text-neutral-500"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Input
-                        placeholder="Role/Title"
-                        value={member.role}
-                        onChange={(e) => updateMember(member.id, 'role', e.target.value)}
-                        className="bg-neutral-950 border-neutral-800 text-neutral-200 placeholder:text-neutral-500"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Input
-                        placeholder="Key responsibilities"
-                        value={member.responsibilities}
-                        onChange={(e) => updateMember(member.id, 'responsibilities', e.target.value)}
-                        className="bg-neutral-950 border-neutral-800 text-neutral-200 placeholder:text-neutral-500"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={() => removeRow(member.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+        </p>
+      </div>
 
-          <Collapsible>
-            <CollapsibleTrigger asChild>
-              <div className="flex items-center space-x-4 cursor-pointer py-2">
-                <Button variant="ghost" size="sm">
-                  <ChevronRight className="h-4 w-4 mr-2" />
-                  Additional Details
-                </Button>
-                <div className="h-px flex-1 bg-border"></div>
-              </div>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <div className="space-y-6 pt-4">
-                {teamMembers.map((member, index) => (
-                  <div key={`${member.id}-details`} className="rounded-lg border border-neutral-800 bg-black/40 p-6">
-                    <h3 className="text-lg font-semibold text-neutral-50">{member.name || `Team Member ${index + 1}`}</h3>
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <div className="space-y-2">
-                        <Label>Email</Label>
-                        <div className="flex gap-2">
-                          <Input
-                            placeholder="Email address"
-                            value={member.email}
-                            onChange={(e) => updateMember(member.id, 'email', e.target.value)}
-                            className="bg-neutral-950 border-neutral-800 text-neutral-200 placeholder:text-neutral-500"
-                          />
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Department</Label>
-                        <Input
-                          placeholder="e.g., Engineering, Marketing, Sales"
-                          value={member.details?.department || ''}
-                          onChange={(e) => updateMemberDetails(member.id, 'department', e.target.value)}
-                          className="bg-neutral-950 border-neutral-800 text-neutral-200 placeholder:text-neutral-500"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Reports To</Label>
-                        <Input
-                          placeholder="Manager or Supervisor"
-                          value={member.details?.reportsTo || ''}
-                          onChange={(e) => updateMemberDetails(member.id, 'reportsTo', e.target.value)}
-                          className="bg-neutral-950 border-neutral-800 text-neutral-200 placeholder:text-neutral-500"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <Label>Enneagram Type</Label>
-                          <Link
-                            href="https://www.enneagraminstitute.com/type-descriptions"
-                            target="_blank"
-                            className="text-xs text-blue-500 hover:underline"
-                          >
-                            Find Your Type
-                          </Link>
-                        </div>
-                        <Select
-                          value={member.details?.enneagramType?.value || ''}
-                          onValueChange={(value) => {
-                            if (!value) {
-                              updateMemberDetails(member.id, 'enneagramType', undefined);
-                              return;
-                            }
-                            const selectedType = enneagramTypes.find(type => type.value === value);
-                            if (selectedType) {
-                              updateMemberDetails(member.id, 'enneagramType', {
-                                value: selectedType.value,
-                                label: selectedType.label
-                              });
-                            }
-                          }}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select your Enneagram type (optional)" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {enneagramTypes.map((type) => (
-                              <SelectItem key={type.value} value={type.value}>
-                                {type.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-4">
-                        <div className="space-y-2">
-                          <Label className="text-lg font-semibold text-neutral-50">Upskill with AI Tools and Training</Label>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">
-                            Select the areas where you'd like to enhance your skills with the help of AI-powered tools and personalized training. 
-                            This will guide us in tailoring AI solutions and resources to support your growth.
-                          </p>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          {aiSkillOptions.map((skill) => (
-                            <div key={skill} className="flex items-center space-x-2">
-                              <Checkbox
-                                id={`skill-${skill}`}
-                                checked={member.details?.aiSkills?.includes(skill) || false}
-                                onCheckedChange={(checked) => {
-                                  const currentSkills = member.details?.aiSkills || []
-                                  const newSkills = checked
-                                    ? [...currentSkills, skill]
-                                    : currentSkills.filter((s) => s !== skill)
-                                  updateMemberDetails(member.id, 'aiSkills', newSkills)
-                                }}
-                              />
-                              <Label htmlFor={`skill-${skill}`} className="text-sm">
-                                {skill}
-                              </Label>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
+      <div className="rounded-lg border border-neutral-800 overflow-hidden bg-neutral-900/50">
+        <Table>
+          <TableHeader>
+            <TableRow className="hover:bg-neutral-800/50 border-b border-neutral-800">
+              <TableHead className="text-neutral-200">Name</TableHead>
+              <TableHead className="text-neutral-200">Role/Title</TableHead>
+              <TableHead className="text-neutral-200">Responsibilities</TableHead>
+              <TableHead className="w-[50px]"></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {teamMembers.map((member) => (
+              <TableRow key={member.id} className="hover:bg-neutral-800/50 border-b border-neutral-800">
+                <TableCell>
+                  <Input
+                    placeholder="Full Name"
+                    value={member.name}
+                    onChange={(e) => updateMember(member.id, 'name', e.target.value)}
+                    className="bg-transparent border-0 focus:ring-1 focus:ring-emerald-500/50 text-neutral-200 placeholder:text-neutral-500"
+                  />
+                </TableCell>
+                <TableCell>
+                  <Input
+                    placeholder="Role/Title"
+                    value={member.role}
+                    onChange={(e) => updateMember(member.id, 'role', e.target.value)}
+                    className="bg-transparent border-0 focus:ring-1 focus:ring-emerald-500/50 text-neutral-200 placeholder:text-neutral-500"
+                  />
+                </TableCell>
+                <TableCell>
+                  <Input
+                    placeholder="Key responsibilities"
+                    value={member.responsibilities}
+                    onChange={(e) => updateMember(member.id, 'responsibilities', e.target.value)}
+                    className="bg-transparent border-0 focus:ring-1 focus:ring-emerald-500/50 text-neutral-200 placeholder:text-neutral-500"
+                  />
+                </TableCell>
+                <TableCell>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeRow(member.id)}
+                    className="text-neutral-400 hover:text-red-400 hover:bg-red-400/10"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
 
-          <div className="flex gap-4 mt-4">
-            <Button variant="default" onClick={addRow}>
-              <Plus className="mr-2 h-4 w-4" /> Add Team Member
-            </Button>
-            <div className="flex items-center gap-2">
-              <Input
-                type="file"
-                accept=".csv"
-                className="hidden"
-                id="csvUpload"
-                onChange={handleFileUpload}
-              />
-              <Button variant="outline" onClick={() => document.getElementById('csvUpload')?.click()}>
-                <Upload className="mr-2 h-4 w-4" /> Upload CSV
-              </Button>
-              <a href="/team-members-template.csv" download>
-                <Button variant="ghost" size="sm">
-                  <Download className="mr-2 h-4 w-4" /> Template CSV
-                </Button>
-              </a>
-            </div>
-          </div>
+      <div className="flex items-center gap-2">
+        <Button
+          onClick={addRow}
+          className="bg-neutral-800 hover:bg-neutral-700 text-neutral-200"
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          Add Team Member
+        </Button>
+        <div className="flex items-center gap-2">
+          <input
+            type="file"
+            ref={fileInputRef}
+            accept=".csv"
+            onChange={handleFileUpload}
+            className="hidden"
+          />
+          <Button
+            variant="outline"
+            size="default"
+            onClick={() => fileInputRef.current?.click()}
+            className="bg-neutral-800 hover:bg-neutral-700 text-neutral-200"
+          >
+            <Upload className="mr-2 h-4 w-4" />
+            Upload CSV
+          </Button>
+          <Button
+            variant="outline"
+            size="default"
+            onClick={downloadTemplate}
+            className="bg-neutral-800 hover:bg-neutral-700 text-neutral-200"
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Template CSV
+          </Button>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }

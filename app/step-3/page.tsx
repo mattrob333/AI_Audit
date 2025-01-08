@@ -3,7 +3,6 @@
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { ProgressSteps } from '@/components/progress-steps'
-import { HelpGuide } from '@/components/help-guide'
 import { QuestionForm } from '@/components/question-form'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -25,9 +24,6 @@ export default function Step3Page() {
         const businessDetails = JSON.parse(localStorage.getItem('step1Data') || '{}')
         const teamDetails = JSON.parse(localStorage.getItem('teamDetails') || '{}')
 
-        console.log('Business Details:', businessDetails)
-        console.log('Team Details:', teamDetails)
-
         if (!businessDetails.businessUrl || !businessDetails.aiSummary || !teamDetails.teamMembers) {
           setError('Please complete the previous steps first')
           return
@@ -40,13 +36,12 @@ export default function Step3Page() {
         })
 
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+          const errorData = await response.json()
+          throw new Error(errorData.error || `HTTP error! status: ${response.status}`)
         }
 
         const data = await response.json()
-        console.log('API Response:', data)
-
+        
         if (data.error) {
           throw new Error(data.error)
         }
@@ -81,54 +76,59 @@ export default function Step3Page() {
 
   return (
     <div className="flex min-h-screen bg-black">
-      <Sidebar className="fixed left-0 top-0 h-full w-52" />
+      <Sidebar className="fixed left-0 top-0 h-full w-64" />
       
-      <main className="flex-1 pl-52">
+      <main className="flex-1 pl-64">
         <div className="sticky top-0 z-40 border-b border-neutral-800 bg-black/95 backdrop-blur supports-[backdrop-filter]:bg-black/80">
           <ProgressSteps currentStep={3} />
         </div>
         
-        <div className="mx-auto max-w-3xl px-6 py-10">
-          <div className="mb-12">
-            <h1 className="text-4xl font-bold tracking-tight text-neutral-50">
-              Company Audit
-            </h1>
-            <p className="mt-3 text-lg text-neutral-400">
-              Answer these questions to help us tailor your AI integration plan.
+        <div className="px-8 py-12 min-h-[calc(100vh-4rem)]">
+          <div className="max-w-[90rem] mx-auto">
+            <div className="mb-12">
+              <h1 className="text-4xl font-bold tracking-tight text-neutral-50 mb-3">
+                Company Audit
+              </h1>
+              <p className="text-lg text-neutral-400">
+                Answer these questions to help us tailor your AI integration plan.
+              </p>
+            </div>
+
+            {error ? (
+              <Alert variant="destructive" className="mb-6">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            ) : loading ? (
+              <div className="flex items-center justify-center py-12">
+                <LoadingSpinner className="w-8 h-8 text-neutral-400" />
+              </div>
+            ) : (
+              <QuestionForm questions={questions} onSubmit={handleSubmit} />
+            )}
+          </div>
+        </div>
+      </main>
+
+      <HelpPanel>
+        <div className="space-y-6">
+          <div>
+            <h3 className="font-semibold text-neutral-200 mb-2">Answering the Audit</h3>
+            <p className="text-sm text-neutral-400">
+              These questions help us understand your company's current processes and readiness for AI integration.
             </p>
           </div>
 
-          {error && (
-            <Alert variant="destructive" className="mb-6">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-
-          {loading ? (
-            <div className="flex justify-center py-12">
-              <LoadingSpinner />
-            </div>
-          ) : (
-            <QuestionForm questions={questions} onSubmit={handleSubmit} />
-          )}
-        </div>
-
-        <HelpGuide 
-          className="fixed top-[80px] right-8 w-72 h-[calc(100vh-112px)]"
-          title="Answering the Audit"
-          description="These questions help us understand your company's current state and readiness for AI integration."
-        >
-          <div className="space-y-4">
-            <p>Tips for answering:</p>
-            <ul className="list-disc pl-4 space-y-2">
-              <li>Be specific about your current processes</li>
-              <li>Include any pain points or challenges</li>
-              <li>Mention any previous automation attempts</li>
-              <li>Share your team's technical comfort level</li>
+          <div className="space-y-2">
+            <h4 className="text-sm font-medium text-neutral-300">Tips for answering:</h4>
+            <ul className="space-y-2 text-sm text-neutral-400">
+              <li>• Be specific about your current processes</li>
+              <li>• Include any pain points or challenges</li>
+              <li>• Mention any previous automation attempts</li>
+              <li>• Share your team's technical comfort level</li>
             </ul>
           </div>
-        </HelpGuide>
-      </main>
+        </div>
+      </HelpPanel>
     </div>
   )
 }

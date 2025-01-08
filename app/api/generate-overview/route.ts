@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
-import { GenerateDocumentSchema, BusinessOverviewSchema } from '@/lib/validation';
+import { GenerateOverviewRequestSchema, BusinessOverviewSchema } from '@/lib/validation';
 import { handleApiError } from '@/lib/errors';
 import { DocumentGenerationError } from '@/lib/errors';
 
@@ -26,7 +26,7 @@ export async function POST(req: Request) {
     }
 
     // Validate request body against schema
-    const validationResult = GenerateDocumentSchema.safeParse(body);
+    const validationResult = GenerateOverviewRequestSchema.safeParse(body);
     if (!validationResult.success) {
       throw new DocumentGenerationError(
         validationResult.error.errors[0].message,
@@ -34,8 +34,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const { businessDetails } = validationResult.data;
-    const { businessUrl, aiSummary, userDescription } = businessDetails;
+    const { businessUrl, aiSummary, userDescription } = validationResult.data;
 
     const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [{
       role: "system",

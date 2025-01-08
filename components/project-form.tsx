@@ -4,7 +4,7 @@ import * as React from 'react'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
-import { Loader2, Mic } from 'lucide-react'
+import { Loader2, Mic, FileText, ArrowRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import ReactMarkdown from 'react-markdown'
@@ -13,36 +13,44 @@ const FLOWISE_API_URL = 'https://flowise-jc8z.onrender.com/api/v1/prediction/'
 const CHATFLOW_ID = 'a4604503-0f4c-4047-925c-419ca43664ba'
 
 interface ProjectFormProps {
-  onFormDataChange?: (data: {
-    businessName: string
-    industry: string
+  formData: {
+    businessUrl: string
+    aiSummary: string
+    userDescription: string
+  } | null
+  setFormData: (data: {
     businessUrl: string
     aiSummary: string
     userDescription: string
   }) => void
+  summaryGenerated: boolean
+  setSummaryGenerated: (generated: boolean) => void
+  onFormDataChange?: (data: any) => void
   onSummaryGenerated?: () => void
   onNext?: () => void
 }
 
-export function ProjectForm({ onFormDataChange, onSummaryGenerated, onNext }: ProjectFormProps) {
-  const [businessUrl, setBusinessUrl] = React.useState('')
+export function ProjectForm({ 
+  formData, 
+  setFormData, 
+  summaryGenerated, 
+  setSummaryGenerated,
+  onFormDataChange,
+  onSummaryGenerated,
+  onNext 
+}: ProjectFormProps) {
   const [generatingSummary, setGeneratingSummary] = React.useState(false)
-  const [aiSummary, setAiSummary] = React.useState('')
   const [isRecording, setIsRecording] = React.useState(false)
-  const [userDescription, setUserDescription] = React.useState('')
+  const [transcribing, setTranscribing] = React.useState(false)
   const mediaRecorderRef = React.useRef<MediaRecorder | null>(null)
   const chunksRef = React.useRef<Blob[]>([])
 
   // Update parent component when form data changes
   React.useEffect(() => {
-    onFormDataChange?.({
-      businessName: '',
-      industry: '',
-      businessUrl,
-      aiSummary,
-      userDescription
-    })
-  }, [businessUrl, aiSummary, userDescription, onFormDataChange])
+    if (formData && onFormDataChange) {
+      onFormDataChange(formData)
+    }
+  }, [formData, onFormDataChange])
 
   const startRecording = async () => {
     try {
@@ -50,6 +58,7 @@ export function ProjectForm({ onFormDataChange, onSummaryGenerated, onNext }: Pr
       const mediaRecorder = new MediaRecorder(stream, {
         mimeType: 'audio/webm;codecs=opus'
       })
+
       mediaRecorderRef.current = mediaRecorder
       chunksRef.current = []
 
@@ -60,14 +69,15 @@ export function ProjectForm({ onFormDataChange, onSummaryGenerated, onNext }: Pr
       }
 
       mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' })
+        setTranscribing(true)
         try {
-          const formData = new FormData()
-          formData.append('audio', audioBlob)
+          const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' })
+          const audioFormData = new FormData()
+          audioFormData.append('audio', audioBlob)
           
           const response = await fetch('/api/transcribe', {
             method: 'POST',
-            body: formData,
+            body: audioFormData,
           })
           
           if (!response.ok) {
@@ -75,74 +85,59 @@ export function ProjectForm({ onFormDataChange, onSummaryGenerated, onNext }: Pr
           }
           
           const { transcription } = await response.json()
-          setUserDescription(prev => prev + (prev ? '\n' : '') + transcription)
+          setFormData({
+            businessUrl: formData?.businessUrl || '',
+            aiSummary: formData?.aiSummary || '',
+            userDescription: formData?.userDescription 
+              ? `${formData.userDescription}\n${transcription}`
+              : transcription,
+          })
         } catch (error) {
-          console.error('Error processing audio:', error)
-          setUserDescription(prev => prev + (prev ? '\n' : '') + '[Error transcribing audio]')
+          console.error('Error transcribing audio:', error)
         } finally {
-          chunksRef.current = []
-          // Cleanup the media stream
+          setTranscribing(false)
+          setIsRecording(false)
+          // Clean up the media stream
           stream.getTracks().forEach(track => track.stop())
         }
       }
 
       mediaRecorder.start()
       setIsRecording(true)
-    } catch (error) {
-      console.error('Error starting recording:', error)
+    } catch (err) {
+      console.error('Error accessing microphone:', err)
     }
   }
 
   const stopRecording = () => {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop()
-      setIsRecording(false)
     }
   }
 
   const generateSummary = async () => {
-    // Validate all required fields
-    if (!businessUrl.trim() || generatingSummary) {
-      console.error('Missing required fields:', {
-        businessUrl: businessUrl.trim()
-      });
-      setAiSummary('Please fill in all required fields (Company Website or LinkedIn URL) before generating the analysis.');
-      return;
-    }
-    
+    if (!formData?.businessUrl) return
+
     setGeneratingSummary(true)
-    
     try {
-      const response = await fetch(`${FLOWISE_API_URL}${CHATFLOW_ID}`, {
+      const response = await fetch(FLOWISE_API_URL + CHATFLOW_ID, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          question: `Analyze this company URL: ${businessUrl}.`,
+          question: `Analyze this business: ${formData.businessUrl}`,
           history: []
         })
       })
 
-      if (!response.ok) {
-        throw new Error('Failed to get AI analysis')
-      }
-
       const data = await response.json()
-      // Clean and process the response text
-      const formattedText = data.text
-        ?.replace(/```markdown/g, '') // Remove markdown code block markers
-        ?.replace(/```/g, '') // Remove remaining code block markers
-        ?.replace(/^#+\s+/gm, '') // Remove markdown headers
-        ?.replace(/\*\*/g, '') // Remove bold markers
-        ?.replace(/^\s*[-•]\s*/gm, '• ') // Standardize bullet points
-        ?.replace(/\n{3,}/g, '\n\n') // Reduce multiple newlines to maximum of 2
-        ?.trim() || 'Unable to generate analysis. Please try again.'
-      setAiSummary(formattedText)
+      setFormData({
+        ...formData,
+        aiSummary: data.text
+      })
+      setSummaryGenerated(true)
       onSummaryGenerated?.()
-    } catch (error) {
-      console.error('Error generating summary:', error)
-      setAiSummary('Error generating analysis. Please try again.')
+    } catch (err) {
+      console.error('Error generating summary:', err)
     } finally {
       setGeneratingSummary(false)
     }
@@ -150,21 +145,42 @@ export function ProjectForm({ onFormDataChange, onSummaryGenerated, onNext }: Pr
 
   return (
     <div className="space-y-8">
-      <div className="space-y-4">
-        <h2 className="text-lg font-semibold text-white">Let's Start with Your Company</h2>
-        <p className="text-sm text-zinc-400">
+      <section className="space-y-4">
+        <h2 className="text-xl font-semibold text-neutral-200">Let's Start with Your Company</h2>
+        <p className="text-neutral-400">
           Share your company's website or LinkedIn URL. We'll analyze your business context to identify the most impactful AI opportunities.
         </p>
-
-        <div className="flex gap-2">
+        
+        <div className="space-y-4">
           <Input
             placeholder="Company Website or LinkedIn URL"
-            value={businessUrl}
-            onChange={(e) => setBusinessUrl(e.target.value)}
+            value={formData?.businessUrl || ''}
+            onChange={(e) => {
+              if (formData === null) {
+                setFormData({
+                  businessUrl: e.target.value,
+                  aiSummary: '',
+                  userDescription: '',
+                })
+              } else {
+                setFormData({
+                  ...formData,
+                  businessUrl: e.target.value
+                })
+              }
+            }}
+            className="bg-neutral-800/50 border-neutral-700 text-neutral-200 placeholder:text-neutral-500"
           />
+          
           <Button
             onClick={generateSummary}
-            disabled={generatingSummary || !businessUrl.trim()}
+            disabled={!formData?.businessUrl || generatingSummary}
+            className={cn(
+              "w-full",
+              summaryGenerated 
+                ? "bg-emerald-500/20 text-emerald-500 hover:bg-emerald-500/30" 
+                : "bg-emerald-500 hover:bg-emerald-600 text-white"
+            )}
           >
             {generatingSummary ? (
               <>
@@ -172,39 +188,53 @@ export function ProjectForm({ onFormDataChange, onSummaryGenerated, onNext }: Pr
                 Analyzing...
               </>
             ) : (
-              'Generate Summary'
+              <>
+                <FileText className="mr-2 h-4 w-4" />
+                {summaryGenerated ? 'Analysis Complete' : 'Generate AI Analysis'}
+              </>
             )}
           </Button>
         </div>
-      </div>
+      </section>
 
-      {aiSummary && (
-        <div className="space-y-4 bg-neutral-900/50 rounded-lg p-6 border border-neutral-800">
-          <div className="space-y-4">
-            <h2 className="text-xl font-semibold text-neutral-200">AI Analysis</h2>
-            <div className="prose prose-invert max-w-none">
-              <ReactMarkdown 
-                className="text-sm text-neutral-200 [&>h3]:text-lg [&>h3]:font-medium [&>h3]:mb-2 [&>p]:mb-4 [&>ul]:list-disc [&>ul]:pl-4 [&>ul]:mb-4 [&>ul>li]:mb-1"
-              >
-                {aiSummary}
-              </ReactMarkdown>
-            </div>
+      {formData?.aiSummary && (
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold text-neutral-200">AI Analysis</h2>
+          <div className="rounded-lg bg-neutral-800/50 border border-neutral-700 p-4">
+            <ReactMarkdown className="prose prose-invert max-w-none">
+              {formData.aiSummary}
+            </ReactMarkdown>
           </div>
-        </div>
+        </section>
       )}
 
-      <div className="space-y-2">
-        <h2 className="text-lg font-semibold text-white">Your AI Vision</h2>
-        <p className="text-sm text-zinc-400">
+      <section className="space-y-4">
+        <h2 className="text-xl font-semibold text-neutral-200">Your AI Vision</h2>
+        <p className="text-neutral-400">
           What are your biggest business challenges? Tell us your goals and pain points, and we'll align AI solutions to solve them.
         </p>
+        
         <div className="relative">
           <Textarea
             placeholder="Describe your business challenges and goals..."
-            value={userDescription}
-            onChange={(e) => setUserDescription(e.target.value)}
-            className="min-h-[100px]"
+            value={formData?.userDescription || ''}
+            onChange={(e) => {
+              if (formData === null) {
+                setFormData({
+                  businessUrl: '',
+                  aiSummary: '',
+                  userDescription: e.target.value,
+                })
+              } else {
+                setFormData({
+                  ...formData,
+                  userDescription: e.target.value
+                })
+              }
+            }}
+            className="min-h-[120px] bg-neutral-800/50 border-neutral-700 text-neutral-200 placeholder:text-neutral-500"
           />
+          
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -212,21 +242,34 @@ export function ProjectForm({ onFormDataChange, onSummaryGenerated, onNext }: Pr
                   size="icon"
                   variant="ghost"
                   className={cn(
-                    'absolute bottom-4 right-4 h-6 w-6',
-                    isRecording && 'text-red-500'
+                    "absolute bottom-2 right-2",
+                    isRecording && "text-red-500",
+                    transcribing && "text-yellow-500"
                   )}
                   onClick={isRecording ? stopRecording : startRecording}
+                  disabled={transcribing}
                 >
-                  <Mic className="h-4 w-4" />
+                  {transcribing ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Mic className={cn("h-4 w-4", isRecording && "animate-pulse")} />
+                  )}
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                {isRecording ? 'Stop recording' : 'Start recording'}
+                <p>
+                  {transcribing 
+                    ? 'Transcribing...' 
+                    : isRecording 
+                      ? 'Stop Recording' 
+                      : 'Start Recording'
+                  }
+                </p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
         </div>
-      </div>
+      </section>
     </div>
   )
 }

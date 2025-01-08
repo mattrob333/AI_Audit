@@ -13,6 +13,10 @@ import { useDocumentStore } from '@/lib/store';
 import { documentSteps } from '@/lib/document-steps';
 import JSZip from 'jszip';
 
+interface GeneratedDocuments {
+  [key: string]: string | null;
+}
+
 export function DocumentGenerator({ 
   selectedDocument, 
   setSelectedDocument 
@@ -21,6 +25,7 @@ export function DocumentGenerator({
   setSelectedDocument: (stepId: DocumentType) => void 
 }) {
   const [currentDocument, setCurrentDocument] = useState<string | null>(null);
+  const [generatedDocuments, setGeneratedDocuments] = useState<GeneratedDocuments>({});
   const [generationStatus, setGenerationStatus] = useState<'idle' | 'loading'>('idle');
   const [error, setError] = useState<string | null>(null);
   const [step1Data, setStep1Data] = useState<Step1Data | null>(null);
@@ -33,6 +38,7 @@ export function DocumentGenerator({
       const step1Raw = localStorage.getItem('step1Data');
       const step2Raw = localStorage.getItem('step2Data');
       const step3Raw = localStorage.getItem('step3Data');
+      const savedDocsRaw = localStorage.getItem('generatedDocuments');
 
       if (step1Raw) {
         const data = JSON.parse(step1Raw);
@@ -48,15 +54,24 @@ export function DocumentGenerator({
         const data = JSON.parse(step3Raw);
         setStep3Data(data);
       }
+
+      if (savedDocsRaw) {
+        const savedDocs = JSON.parse(savedDocsRaw);
+        setGeneratedDocuments(savedDocs);
+        if (selectedDocument && savedDocs[selectedDocument]) {
+          setCurrentDocument(savedDocs[selectedDocument]);
+        }
+      }
     } catch (err) {
       console.error('Error loading data from localStorage:', err);
       setError('Error loading data from previous steps. Please ensure all steps are completed.');
     }
-  }, []);
+  }, [selectedDocument]);
 
-  const handleStepClick = (stepId: DocumentType) => {
+  const handleStepChange = (stepId: DocumentType) => {
     setSelectedDocument(stepId);
     setError(null);
+    setCurrentDocument(generatedDocuments[stepId] || null);
   };
 
   const handleGenerate = async (docType: string) => {
@@ -113,6 +128,14 @@ export function DocumentGenerator({
         throw new Error('No document content received');
       }
 
+      // Store the generated document
+      const updatedDocs = {
+        ...generatedDocuments,
+        [docType]: data.document
+      };
+      setGeneratedDocuments(updatedDocs);
+      localStorage.setItem('generatedDocuments', JSON.stringify(updatedDocs));
+      
       setCurrentDocument(data.document);
       setGenerationStatus('idle');
     } catch (err) {
@@ -172,7 +195,7 @@ export function DocumentGenerator({
           {documentSteps.map((step) => (
             <button
               key={step.id}
-              onClick={() => handleStepClick(step.id)}
+              onClick={() => handleStepChange(step.id)}
               className={cn(
                 'w-full px-4 py-3 text-left transition-colors rounded-lg',
                 selectedDocument === step.id

@@ -23,12 +23,18 @@ export const AuditAnswerSchema = z.object({
   answer: z.string().min(1, 'Answer is required')
 });
 
+export const GenerateOverviewRequestSchema = z.object({
+  businessUrl: z.string().url('Invalid business URL'),
+  aiSummary: z.string().min(10, 'AI summary must be at least 10 characters'),
+  userDescription: z.string().min(1, 'User description is required')
+});
+
 export const BusinessOverviewSchema = z.object({
   businessOverview: z.string().min(1, 'Business overview is required'),
   keyChallenges: z.array(z.string()),
   strengths: z.array(z.string()),
   integrationOpportunities: z.array(z.string()),
-  implementationConsiderations: z.string(),
+  implementationConsiderations: z.array(z.string()),
   timeline: z.object({
     phase1_assessment: z.string(),
     phase2_implementation: z.string(),

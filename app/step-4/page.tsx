@@ -4,12 +4,12 @@ import * as React from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { ProgressSteps } from '@/components/progress-steps'
-import { HelpGuide } from '@/components/help-guide'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { CollapsibleSection } from '@/components/ui/collapsible-section'
-import { Pencil, ChevronDown, ChevronUp } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 import { Sidebar } from '@/components/sidebar'
+import { HelpPanel } from '@/components/help-panel'
 
 interface Timeline {
   phase1_assessment: string;
@@ -28,43 +28,11 @@ interface OverviewData {
   complianceAndSecurity: string[];
 }
 
-interface Step1Data {
-  businessUrl: string;
-  aiSummary: string;
-  userDescription: string;
-}
-
-interface TeamMember {
-  id: string;
-  name: string;
-  role: string;
-  responsibilities: string;
-  email: string;
-  inviteStatus: 'not_invited' | 'invited' | 'completed';
-  details?: {
-    department?: string;
-    reportsTo?: string;
-    enneagramType?: {
-      value: string;
-      label: string;
-    }
-    aiSkills?: string[] // Array of selected AI skill areas
-  }
-}
-
-interface TeamDetails {
-  teamMembers: TeamMember[];
-  currentSoftware: string[];
-  aiToolsOfInterest: string[];
-}
-
 export default function Step4Page() {
   const router = useRouter()
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState('')
   const [overview, setOverview] = React.useState<OverviewData | null>(null)
-  const [expandedSections, setExpandedSections] = React.useState<string[]>([])
-  const [hasChanges, setHasChanges] = React.useState(false)
 
   const formatTitle = (title: string) => {
     return title
@@ -76,8 +44,8 @@ export default function Step4Page() {
   const renderTimelineContent = (timeline: Timeline) => {
     return Object.entries(timeline).map(([phase, description]) => (
       <div key={phase} className="space-y-2">
-        <h3 className="font-semibold">{formatTitle(phase)}</h3>
-        <p>{description}</p>
+        <h3 className="text-sm font-medium text-neutral-200">{formatTitle(phase)}</h3>
+        <p className="text-sm text-neutral-400 leading-relaxed">{description}</p>
       </div>
     ))
   }
@@ -85,10 +53,8 @@ export default function Step4Page() {
   const validateOverviewData = (data: any): data is OverviewData => {
     if (typeof data !== 'object' || data === null) return false;
     
-    // Check required string fields
     if (typeof data.businessOverview !== 'string') return false;
     
-    // Check required array fields
     const arrayFields = [
       'keyChallenges',
       'strengths',
@@ -99,15 +65,26 @@ export default function Step4Page() {
     ];
     
     for (const field of arrayFields) {
-      if (!Array.isArray(data[field])) return false;
-      if (!data[field].every((item: any) => typeof item === 'string')) return false;
+      if (!Array.isArray(data[field])) {
+        console.error(`Field ${field} is not an array:`, data[field]);
+        return false;
+      }
+      if (!data[field].every((item: any) => typeof item === 'string')) {
+        console.error(`Field ${field} contains non-string items:`, data[field]);
+        return false;
+      }
     }
     
-    // Check timeline structure
-    if (typeof data.timeline !== 'object' || data.timeline === null) return false;
+    if (typeof data.timeline !== 'object' || data.timeline === null) {
+      console.error('Timeline is not an object:', data.timeline);
+      return false;
+    }
     const requiredPhases = ['phase1_assessment', 'phase2_implementation', 'phase3_expansion'];
     for (const phase of requiredPhases) {
-      if (typeof data.timeline[phase] !== 'string') return false;
+      if (typeof data.timeline[phase] !== 'string') {
+        console.error(`Timeline phase ${phase} is not a string:`, data.timeline[phase]);
+        return false;
+      }
     }
     
     return true;
@@ -119,24 +96,27 @@ export default function Step4Page() {
         setLoading(true)
         setError('')
 
-        // Load step 1 data first to get business details
         const step1DataStr = localStorage.getItem('step1Data')
         if (!step1DataStr) {
           throw new Error('Missing business details from Step 1')
         }
         const step1Data = JSON.parse(step1DataStr)
         
-        // Validate step 1 data
         if (!step1Data.businessUrl || !step1Data.aiSummary) {
           throw new Error('Missing required business details from Step 1')
         }
 
-        // Load overview data
+        // Get cached overview and its associated business URL
         const overviewStr = localStorage.getItem('overview')
-        let overviewData = overviewStr ? JSON.parse(overviewStr) : null
+        const cachedBusinessUrl = localStorage.getItem('overviewBusinessUrl')
+        let overviewData = null
+
+        // Only use cached data if it's for the same business
+        if (overviewStr && cachedBusinessUrl === step1Data.businessUrl) {
+          overviewData = JSON.parse(overviewStr)
+        }
 
         if (!overviewData) {
-          // If no overview exists, generate it using the API
           const response = await fetch('/api/generate-overview', {
             method: 'POST',
             headers: {
@@ -150,16 +130,16 @@ export default function Step4Page() {
           })
 
           if (!response.ok) {
-            const errorData = await response.json();
-            console.error('Overview generation failed:', errorData);
-            throw new Error(errorData.error || 'Failed to generate overview');
+            const errorData = await response.json()
+            console.error('API Error:', errorData);
+            throw new Error(errorData.error || 'Failed to generate overview')
           }
 
           overviewData = await response.json()
           console.log('Received overview data:', overviewData);
-          
-          // Save the overview data
+          // Store both the overview and the business URL it's associated with
           localStorage.setItem('overview', JSON.stringify(overviewData))
+          localStorage.setItem('overviewBusinessUrl', step1Data.businessUrl)
         }
 
         if (validateOverviewData(overviewData)) {
@@ -168,7 +148,6 @@ export default function Step4Page() {
           throw new Error('Invalid overview data structure')
         }
       } catch (err: any) {
-        console.error('Error generating overview:', err)
         setError(err.message || 'Failed to generate overview')
       } finally {
         setLoading(false)
@@ -184,101 +163,118 @@ export default function Step4Page() {
 
   return (
     <div className="flex min-h-screen bg-black">
-      {/* Left Navigation Sidebar */}
       <Sidebar className="fixed left-0 top-0 h-full w-64" />
       
-      {/* Main Content */}
-      <div className="flex flex-1 flex-col pl-64">
-        {/* Top Progress Bar */}
+      <main className="flex-1 pl-64">
         <div className="sticky top-0 z-40 border-b border-neutral-800 bg-black/95 backdrop-blur supports-[backdrop-filter]:bg-black/80">
           <ProgressSteps currentStep={4} />
         </div>
 
-        {/* Main Content Area */}
-        <div className="relative flex min-h-[calc(100vh-3.5rem)]">
-          <div className="flex-1">
-            <div className="mx-auto max-w-4xl px-8 py-10">
-              <div className="mb-12">
-                <h1 className="text-4xl font-bold tracking-tight text-neutral-50">
-                  Integration Overview
-                </h1>
-                <p className="mt-3 text-lg text-neutral-400 leading-relaxed">
-                  Review your personalized AI integration plan based on your responses.
-                </p>
+        <div className="px-8 py-12 min-h-[calc(100vh-4rem)]">
+          <div className="max-w-[90rem] mx-auto">
+            <div className="mb-12">
+              <h1 className="text-4xl font-bold tracking-tight text-neutral-50 mb-3">
+                Integration Overview
+              </h1>
+              <p className="text-lg text-neutral-400">
+                Review your personalized AI integration plan based on your responses.
+              </p>
+            </div>
+
+            {error ? (
+              <Alert variant="destructive" className="mb-6">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            ) : loading ? (
+              <div className="flex items-center justify-center py-12">
+                <LoadingSpinner className="w-8 h-8 text-neutral-400" />
               </div>
-
-              {error && (
-                <Alert variant="destructive" className="mb-6">
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-
-              {loading ? (
-                <div className="flex justify-center py-12">
-                  <LoadingSpinner />
-                </div>
-              ) : overview ? (
-                <div className="space-y-6">
-                  {Object.entries(overview).map(([section, content]) => {
-                    const formattedTitle = formatTitle(section)
-                    
-                    let renderedContent: React.ReactNode = null;
-                    if (section === 'timeline' && content && typeof content === 'object') {
-                      renderedContent = renderTimelineContent(content as Timeline);
-                    } else if (typeof content === 'string') {
-                      renderedContent = <div className="text-neutral-300" dangerouslySetInnerHTML={{ __html: content }} />;
-                    } else if (Array.isArray(content)) {
-                      renderedContent = (
-                        <ul className="space-y-2 text-neutral-300">
-                          {content.map((item, index) => (
-                            <li key={index} className="flex items-start">
-                              <span className="mr-2 mt-1.5 text-neutral-300">•</span>
-                              <span>{typeof item === 'string' ? item : JSON.stringify(item)}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      );
-                    } else {
-                      renderedContent = (
-                        <pre className="whitespace-pre-wrap text-neutral-300">
-                          {JSON.stringify(content, null, 2)}
-                        </pre>
-                      );
-                    }
-                    
-                    return (
+            ) : overview ? (
+              <div className="space-y-6">
+                {Object.entries(overview).map(([section, content]) => {
+                  const formattedTitle = formatTitle(section)
+                  
+                  let renderedContent: React.ReactNode = null;
+                  if (section === 'timeline' && content && typeof content === 'object') {
+                    renderedContent = renderTimelineContent(content as Timeline);
+                  } else if (typeof content === 'string') {
+                    renderedContent = (
+                      <div 
+                        className="text-sm text-neutral-400 leading-relaxed" 
+                        dangerouslySetInnerHTML={{ __html: content }} 
+                      />
+                    );
+                  } else if (Array.isArray(content)) {
+                    renderedContent = (
+                      <ul className="space-y-3">
+                        {content.map((item, index) => (
+                          <li key={index} className="flex items-start gap-3 text-sm text-neutral-400">
+                            <span className="select-none">•</span>
+                            <span className="flex-1">{typeof item === 'string' ? item : JSON.stringify(item)}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    );
+                  } else {
+                    renderedContent = (
+                      <pre className="whitespace-pre-wrap text-sm text-neutral-400">
+                        {JSON.stringify(content, null, 2)}
+                      </pre>
+                    );
+                  }
+                  
+                  return (
+                    <div key={section} className="rounded-lg border border-neutral-800 bg-neutral-900/50 backdrop-blur-sm">
                       <CollapsibleSection
-                        key={section}
                         title={formattedTitle}
                         defaultExpanded={true}
+                        className="px-6 py-4"
                       >
-                        <div className="space-y-4 text-neutral-300">
+                        <div className="mt-4 space-y-4">
                           {renderedContent}
                         </div>
                       </CollapsibleSection>
-                    )
-                  })}
-                  
-                  <div className="mt-8 flex justify-end">
-                    <Button 
-                      onClick={handleNext}
-                      size="lg"
-                      className="bg-emerald-500 hover:bg-emerald-600 text-neutral-900"
-                    >
-                      Continue to Documents
-                    </Button>
-                  </div>
+                    </div>
+                  )
+                })}
+                
+                <div className="flex justify-end pt-8">
+                  <Button 
+                    onClick={handleNext}
+                    size="lg"
+                    className="bg-emerald-500 hover:bg-emerald-600 text-white font-medium"
+                  >
+                    Next Step
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
                 </div>
-              ) : null}
-            </div>
-          </div>
-
-          {/* Right Help Panel */}
-          <div className="fixed right-0 top-14 h-[calc(100vh-3.5rem)] w-80 overflow-y-auto border-l border-neutral-800 bg-black">
-            <HelpGuide />
+              </div>
+            ) : null}
           </div>
         </div>
-      </div>
+      </main>
+
+      <HelpPanel>
+        <div className="space-y-6">
+          <div>
+            <h3 className="font-semibold text-neutral-200 mb-2">About the Overview</h3>
+            <p className="text-sm text-neutral-400">
+              This overview provides a comprehensive analysis of your business and outlines the recommended AI integration strategy.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <h4 className="text-sm font-medium text-neutral-300">Key Sections:</h4>
+            <ul className="space-y-2 text-sm text-neutral-400">
+              <li>• Business Overview - Summary of your company</li>
+              <li>• Key Challenges - Current issues to address</li>
+              <li>• Strengths - Your competitive advantages</li>
+              <li>• Integration Opportunities - Areas for AI implementation</li>
+              <li>• Timeline - Phased implementation plan</li>
+            </ul>
+          </div>
+        </div>
+      </HelpPanel>
     </div>
   )
 }

@@ -29,7 +29,16 @@ export default function TeamPage() {
         </div>
       </main>
 
-      <HelpPanel />
+      <HelpPanel>
+        <div className="space-y-4">
+          <p>Need help building your team structure?</p>
+          <ul className="list-disc pl-4 space-y-2">
+            <li>Include all team members who will be involved in AI integration</li>
+            <li>Specify their roles and responsibilities</li>
+            <li>Note their technical expertise and experience with AI</li>
+          </ul>
+        </div>
+      </HelpPanel>
     </div>
   )
 }
