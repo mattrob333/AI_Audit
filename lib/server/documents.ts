@@ -88,7 +88,7 @@ export async function generateDocumentServer(docType: DocumentType, userData: Us
 - Maintains an encouraging tone, reinforcing their momentum and readiness to embrace AI innovations
 
 Additional context:
-${exaResults.map(r => `- ${r.snippet}`).join('\n')}`;
+${exaResults.map(r => `- ${r.content}`).join('\n')}`;
       break;
       
     case 'upskilling':
@@ -105,45 +105,47 @@ Team Context:
 - Key Challenges: ${userData.keyChallenges?.join(', ') || 'None specified'}
 
 Additional insights:
-${exaResults.map(r => `- ${r.snippet}`).join('\n')}`;
+${exaResults.map(r => `- ${r.content}`).join('\n')}`;
       break;
       
     case 'aiPersonas':
-      systemPrompt = `You are an expert AI architect specializing in designing AI-driven organizational structures. The user's business requires four high-impact AI personas (like "department heads") to assist with Marketing, Sales, Operations, and other critical functions. Please create a detailed AiPersonas document in Markdown format that:
+      systemPrompt = `You are an AI persona designer specializing in creating intuitive AI interfaces. Create a detailed AI Personas Document in Markdown format that:
 
-- Introduces four "world-class" AI experts with names, departments, and clear role definitions
-- Specifies skill sets, competencies, and the knowledge base each persona should have access to (e.g., product catalogs, brand guidelines, etc.)
-- Lists goals or KPIs each persona aims to achieve, aligned with the user's market and service offerings
-- Ensures these AI personas will augment the human team's strengths and help them reach new levels of efficiency and success
+- Analyzes the team's composition and needs based on: ${userData.teamMembers?.map(m => `${m.role}: ${m.responsibilities}`).join(', ')}
+- Defines distinct AI personas tailored to different user groups within the organization
+- Specifies the tone, capabilities, and limitations of each AI persona
+- Includes example interactions and use cases
 
-Incorporate actionable insights and any industry research relevant to designing effective AI "org charts."`;
+Market research:
+${exaResults.map(r => `- ${r.content}`).join('\n')}`;
       break;
       
     case 'customerChatbot':
-      systemPrompt = `You are a customer experience and AI consultant skilled in developing impactful support chatbots. The user wants a customer-facing chatbot that answers FAQs, showcases the company's products/services, and aligns with brand guidelines. Please create a detailed chatbot document in Markdown format that:
+      systemPrompt = `You are a conversational AI expert focusing on customer experience. Create a Customer Chatbot Strategy Document in Markdown format that:
 
-- Defines the chatbot's persona (tone, style, do's/don'ts)
-- Specifies system instructions and any internal documentation or knowledge bases it should reference (e.g., product sheets, shipping policies, troubleshooting steps)
-- Explains how the bot maintains brand consistency, handles compliance, and gracefully escalates complex queries to human support
-- Provides example interactions or prompts so the user can see typical Q&A flows
+- Analyzes the business context: ${userData.userDescription}
+- Outlines a phased approach to implementing an AI chatbot
+- Specifies required capabilities, training data sources, and integration points
+- Includes example conversation flows and edge cases to handle
 
-Use actionable insights from:
-1. The user's business context (products, services, brand voice)
-2. Best practices in AI-driven customer support`;
+Similar implementations:
+${exaResults.map(r => `- ${r.content}`).join('\n')}`;
       break;
       
     case 'automationPlan':
-      systemPrompt = `You are a solutions architect with extensive expertise in workflow automation and AI integration. The user wants a high-level Automation Plan that outlines how to connect their existing software stack (e.g., Slack, CRM, etc.) with AI services like Make.com, Zapier, or LangChain. Please create a detailed automationPlan document in Markdown format that:
+      systemPrompt = `You are an AI automation architect specializing in business process optimization. Create a detailed Automation Plan in Markdown format that:
 
-- Proposes five realistic automations or integration workflows specifically benefiting their business (e.g., email outreach, lead routing, chat-based status updates, data analytics triggers)
-- Uses high-level, yet detailed instructions on how these automations work and which tools they involve (Make.com, Zapier, custom scripts, etc.)
-- Showcases how AI can streamline processes, reduce manual tasks, and create real-time insights
-- Encourages the user that by implementing these automations, they can achieve optimal efficiency and unlock new growth opportunities
+- Analyzes current workflows based on: ${userData.userDescription}
+- Identifies high-impact automation opportunities
+- Provides a phased implementation roadmap with clear milestones
+- Includes success metrics and ROI calculations
 
-Incorporate actionable recommendations drawn from:
-1. The user's company details (current tools, business model)
-2. Industry research on best automation practices`;
+Industry best practices:
+${exaResults.map(r => `- ${r.content}`).join('\n')}`;
       break;
+
+    default:
+      throw new Error(`Unsupported document type: ${docType}`);
   }
 
   const openai = getOpenAIClient();
