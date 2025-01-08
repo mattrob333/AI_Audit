@@ -172,13 +172,34 @@ export default function Step4Page() {
 
         <div className="px-8 py-12 min-h-[calc(100vh-4rem)]">
           <div className="max-w-[90rem] mx-auto">
-            <div className="mb-12">
-              <h1 className="text-4xl font-bold tracking-tight text-neutral-50 mb-3">
-                Integration Overview
-              </h1>
-              <p className="text-lg text-neutral-400">
-                Review your personalized AI integration plan based on your responses.
-              </p>
+            <div className="space-y-6 mb-12">
+              <div className="space-y-2">
+                <h1 className="text-4xl font-bold tracking-tight text-neutral-50">
+                  Tailored Strategies & Quick Wins
+                </h1>
+                <p className="text-lg text-neutral-400">
+                  Review personalized AI suggestions based on your business context, team data, and audit details.
+                </p>
+              </div>
+
+              <div className="space-y-4 p-4 bg-neutral-900/50 rounded-lg border border-neutral-800">
+                <div className="space-y-2">
+                  <h2 className="font-medium text-neutral-300">What You'll See:</h2>
+                  <ul className="list-disc list-inside space-y-1 text-neutral-400">
+                    <li>Immediate improvements you can implement (e.g., chatbot, automated email summaries)</li>
+                    <li>Longer-term opportunities (e.g., advanced analytics, process re-engineering)</li>
+                    <li>Industry best practices aligned with your goals</li>
+                  </ul>
+                </div>
+
+                <div className="space-y-2">
+                  <h2 className="font-medium text-neutral-300">Why It Matters:</h2>
+                  <ul className="list-disc list-inside space-y-1 text-neutral-400">
+                    <li>This step gives you a clear action plan to start harnessing AI.</li>
+                    <li>By focusing on both "quick wins" and "long-term vision," you'll see a roadmap for sustainable AI adoption.</li>
+                  </ul>
+                </div>
+              </div>
             </div>
 
             {error ? (
