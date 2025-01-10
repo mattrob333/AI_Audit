@@ -1,14 +1,245 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
+import { z } from 'zod';
 import { GenerateOverviewRequestSchema, BusinessOverviewSchema } from '@/lib/validation';
 import { handleApiError } from '@/lib/errors';
 import { DocumentGenerationError } from '@/lib/errors';
 
+const FLOWISE_ENDPOINT = "https://flowise-jc8z.onrender.com/api/v1/prediction/0397dc74-c6f6-4e34-912d-a6d788f9e19a";
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+async function queryFlowise(businessUrl: string) {
+  console.log('Querying Flowise with URL:', businessUrl);
+  try {
+    console.log('Making request to Flowise endpoint:', FLOWISE_ENDPOINT);
+    const response = await fetch(FLOWISE_ENDPOINT, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ 
+        question: businessUrl
+      })
+    });
+
+    console.log('Flowise response status:', response.status);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Flowise error response:', errorText);
+      throw new Error(`Flowise API error: ${response.status} ${response.statusText} - ${errorText}`);
+    }
+
+    const result = await response.json();
+    console.log('Flowise raw response:', result);
+    
+    // Extract the actual text content from the Flowise response
+    let flowiseText;
+    if (typeof result === 'string') {
+      flowiseText = result;
+    } else if (result.text) {
+      flowiseText = result.text;
+    } else if (result.answer) {
+      flowiseText = result.answer;
+    } else {
+      flowiseText = JSON.stringify(result);
+    }
+    
+    console.log('Extracted Flowise text:', flowiseText);
+    
+    if (!flowiseText || flowiseText.trim() === '') {
+      throw new Error('Flowise returned empty response');
+    }
+    
+    return flowiseText;
+  } catch (error) {
+    console.error('Flowise API error:', error);
+    throw new DocumentGenerationError(
+      error instanceof Error ? error.message : 'Failed to get AI roadmap from Flowise',
+      'FLOWISE_ERROR'
+    );
+  }
+}
+
+async function transformFlowiseOutput(flowiseReport: string) {
+  console.log('Transforming Flowise output...');
+  console.log('Input report:', flowiseReport);
+  
+  try {
+    const systemPrompt = `You are a data transformation expert. Your task is to transform an AI roadmap report into a structured JSON format that matches this exact schema:
+
+{
+  "businessOverview": {
+    "summary": string,
+    "vision": string,
+    "objectives": string[]
+  },
+  "keyChallenges": [{
+    "challenge": string,
+    "impact": string,
+    "priority": "High" | "Medium" | "Low"
+  }],
+  "strengths": [{
+    "area": string,
+    "description": string,
+    "leverageOpportunity": string
+  }],
+  "integrationOpportunities": [{
+    "area": string,
+    "description": string,
+    "benefit": string,
+    "prerequisite": string
+  }],
+  "implementationConsiderations": [{
+    "category": string,
+    "points": string[],
+    "risksAndMitigation": string[]
+  }],
+  "timeline": {
+    "phase1_assessment": {
+      "duration": string,
+      "activities": string[],
+      "deliverables": string[]
+    },
+    "phase2_implementation": {
+      "duration": string,
+      "activities": string[],
+      "deliverables": string[]
+    },
+    "phase3_expansion": {
+      "duration": string,
+      "activities": string[],
+      "deliverables": string[]
+    }
+  },
+  "quickWins": [{
+    "title": string,
+    "description": string,
+    "estimatedTimeSavedPerWeek": string,
+    "roiPotential": string,
+    "implementationComplexity": "Low" | "Medium" | "High",
+    "steps": string[]
+  }],
+  "longTermOpportunities": [{
+    "title": string,
+    "description": string,
+    "timeHorizon": string,
+    "roiPotential": string,
+    "strategicValue": "High" | "Very High" | "Transformative",
+    "keyMilestones": string[]
+  }],
+  "industryTrends": [{
+    "trend": string,
+    "impact": string,
+    "adoptionRate": string,
+    "relevance": string,
+    "recommendations": string[]
+  }]
+}
+
+Rules:
+1. The output MUST match this schema exactly - all fields are required
+2. All arrays must have at least one item
+3. Enum values must match exactly:
+   - priority: "High", "Medium", or "Low"
+   - implementationComplexity: "Low", "Medium", or "High"
+   - strategicValue: "High", "Very High", or "Transformative"
+4. If information isn't explicitly present in the input, derive it logically from context
+5. Keep text concise but informative
+
+Transform this AI roadmap report into the specified JSON structure. If you can't find explicit information for a field, derive it logically from the context. Ensure all enum values match exactly: implementationComplexity must be one of ["Low", "Medium", "High"] and strategicValue must be one of ["High", "Very High", "Transformative"].\n\n${flowiseReport}`;
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "system",
+          content: systemPrompt
+        },
+        {
+          role: "user",
+          content: `Transform this AI roadmap report into the specified JSON structure. If you can't find explicit information for a field, derive it logically from the context. Ensure all enum values match exactly: implementationComplexity must be one of ["Low", "Medium", "High"] and strategicValue must be one of ["High", "Very High", "Transformative"].\n\n${flowiseReport}`
+        }
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0.5,
+      max_tokens: 4000
+    });
+
+    const content = completion.choices[0]?.message?.content;
+    if (!content) {
+      throw new Error('No content in OpenAI response');
+    }
+
+    console.log('GPT-4 transformation complete, raw response:', content);
+    
+    try {
+      const formattedData = JSON.parse(content);
+      console.log('Parsed JSON data structure:', JSON.stringify(formattedData, null, 2));
+      
+      // Log the expected schema structure
+      console.log('Expected schema structure:', JSON.stringify(BusinessOverviewSchema.shape, null, 2));
+      
+      // Validate each major section individually to pinpoint issues
+      const sections = [
+        'businessOverview',
+        'keyChallenges',
+        'strengths',
+        'integrationOpportunities',
+        'implementationConsiderations',
+        'timeline',
+        'quickWins',
+        'longTermOpportunities',
+        'industryTrends'
+      ] as const;  // Make this a const array to help with type inference
+      
+      for (const section of sections) {
+        if (formattedData[section]) {
+          console.log(`Validating section: ${section}`);
+          console.log(`Section data:`, JSON.stringify(formattedData[section], null, 2));
+          
+          // Create a partial schema for just this section
+          const partialSchema = z.object({
+            [section]: BusinessOverviewSchema.shape[section]
+          });
+          
+          const sectionValidation = partialSchema.safeParse({ [section]: formattedData[section] });
+          if (!sectionValidation.success) {
+            console.error(`Validation failed for ${section}:`, sectionValidation.error.errors);
+          }
+        } else {
+          console.error(`Missing required section: ${section}`);
+        }
+      }
+      
+      // Validate the complete data
+      console.log('Validating complete formatted data...');
+      const validation = BusinessOverviewSchema.safeParse(formattedData);
+      if (!validation.success) {
+        console.error('Validation errors:', validation.error.errors);
+        throw new Error(`Data validation failed: ${validation.error.errors.map(e => e.message).join(', ')}`);
+      }
+
+      console.log('Data validation successful');
+      return validation.data;
+    } catch (parseError: unknown) {
+      console.error('JSON parsing error:', parseError);
+      throw new Error(`Failed to parse GPT-4 response: ${parseError instanceof Error ? parseError.message : String(parseError)}`);
+    }
+  } catch (error) {
+    console.error('Error transforming Flowise output:', error);
+    throw new DocumentGenerationError(
+      error instanceof Error ? error.message : 'Failed to transform AI roadmap data',
+      'TRANSFORMATION_ERROR'
+    );
+  }
+}
+
 export async function POST(req: Request) {
+  console.log('Received POST request to /api/generate-overview');
+  
   if (!process.env.OPENAI_API_KEY) {
     console.error('OpenAI API key is missing');
     return NextResponse.json(
@@ -21,93 +252,52 @@ export async function POST(req: Request) {
     let body;
     try {
       body = await req.json();
+      console.log('Request body:', body);
     } catch (e) {
+      console.error('Error parsing request body:', e);
       throw new DocumentGenerationError('Invalid JSON in request body', 'INVALID_JSON');
     }
 
     // Validate request body against schema
     const validationResult = GenerateOverviewRequestSchema.safeParse(body);
     if (!validationResult.success) {
+      console.error('Request validation failed:', validationResult.error.errors);
       throw new DocumentGenerationError(
         validationResult.error.errors[0].message,
         'VALIDATION_ERROR'
       );
     }
 
-    const { businessUrl, aiSummary, userDescription } = validationResult.data;
+    const { businessUrl } = validationResult.data;
 
-    const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [{
-      role: "system",
-      content: `You are an AI integration expert. Analyze the following business information and create a comprehensive overview and integration plan. Focus on identifying key strengths, weaknesses, and opportunities for AI integration.
-
-Your response must be a valid JSON object following the exact structure provided.`
-    }, {
-      role: "user",
-      content: `Here is the company information to analyze:
-
-Business Details:
-- Business URL: ${businessUrl}
-- AI Analysis: ${aiSummary}
-- User Description: ${userDescription}
-
-Generate a detailed analysis in this exact JSON structure:
-{
-  "businessOverview": "A clear, concise summary of the business",
-  "keyChallenges": ["Challenge 1", "Challenge 2", "Challenge 3"],
-  "strengths": ["Strength 1", "Strength 2", "Strength 3"],
-  "integrationOpportunities": ["Opportunity 1", "Opportunity 2", "Opportunity 3"],
-  "implementationConsiderations": ["Consideration 1", "Consideration 2", "Consideration 3"],
-  "timeline": {
-    "phase1_assessment": "First 30 days: Description of initial assessment and planning",
-    "phase2_implementation": "Days 31-90: Description of initial implementation",
-    "phase3_expansion": "Days 91-180: Description of expansion and optimization"
-  },
-  "trainingNeeds": ["Training need 1", "Training need 2", "Training need 3"],
-  "complianceAndSecurity": ["Security consideration 1", "Security consideration 2", "Security consideration 3"]
-}`
-    }];
-
-    console.log('Sending request to OpenAI...');
-    let completion;
+    // 1. Get AI roadmap from Flowise
+    console.log('Fetching AI roadmap from Flowise...');
+    let flowiseReport;
     try {
-      completion = await openai.chat.completions.create({
-        model: "gpt-4",
-        messages,
-        temperature: 0.7,
-        response_format: { type: 'json_object' }
-      });
+      flowiseReport = await queryFlowise(businessUrl);
+      console.log('Flowise report received:', flowiseReport);
     } catch (error) {
-      console.error('OpenAI API error:', error);
-      throw new DocumentGenerationError(
-        error instanceof Error ? error.message : 'Failed to communicate with OpenAI API',
-        'OPENAI_ERROR'
-      );
+      console.error('Error getting Flowise report:', error);
+      throw error;
     }
 
-    const content = completion.choices[0]?.message?.content;
-    if (!content) {
-      throw new DocumentGenerationError('No content in OpenAI response', 'EMPTY_RESPONSE');
-    }
-
-    console.log('Parsing OpenAI response...');
+    // 2. Transform the report into our required JSON structure
+    console.log('Transforming Flowise output...');
+    let formattedData;
     try {
-      const parsedContent = JSON.parse(content);
-      // Validate the response structure matches our BusinessOverviewSchema
-      const responseValidation = BusinessOverviewSchema.safeParse(parsedContent);
-      if (!responseValidation.success) {
-        throw new DocumentGenerationError('Invalid response structure from OpenAI', 'INVALID_RESPONSE');
-      }
-      console.log('Successfully parsed and validated OpenAI response');
-      return NextResponse.json(responseValidation.data);
-    } catch (e) {
-      console.error('Error parsing OpenAI response:', e);
-      throw new DocumentGenerationError(
-        e instanceof Error ? e.message : 'Invalid JSON response from OpenAI',
-        'INVALID_RESPONSE'
-      );
+      formattedData = await transformFlowiseOutput(flowiseReport);
+      console.log('Transformed data:', formattedData);
+    } catch (error) {
+      console.error('Error transforming Flowise output:', error);
+      throw error;
     }
+
+    // 3. Return the formatted data
+    console.log('Sending response...');
+    return NextResponse.json(formattedData);
+
   } catch (error) {
-    const { error: errorMessage, status } = handleApiError(error);
-    return NextResponse.json({ error: errorMessage }, { status });
+    console.error('Error in generate-overview:', error);
+    return handleApiError(error);
   }
 }

@@ -4,7 +4,7 @@ import { Button } from './button'
 import { Textarea } from './textarea'
 
 interface CollapsibleSectionProps {
-  title: string
+  title: string | React.ReactNode
   content?: string | string[] | Record<string, string[]>
   children?: React.ReactNode
   sectionId?: string

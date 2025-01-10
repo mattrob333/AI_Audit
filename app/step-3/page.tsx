@@ -71,8 +71,47 @@ export default function Step3Page() {
   }, [])
 
   const handleSubmit = async (answers: any[]) => {
-    localStorage.setItem('auditAnswers', JSON.stringify(answers))
-    router.push('/step-4')
+    try {
+      // Save the audit answers
+      localStorage.setItem('auditAnswers', JSON.stringify(answers))
+
+      // Get business details from step 1
+      const step1DataStr = localStorage.getItem('step1Data')
+      if (!step1DataStr) {
+        throw new Error('Missing business details from Step 1')
+      }
+      const step1Data = JSON.parse(step1DataStr)
+
+      // Pre-fetch the overview data
+      const response = await fetch('/api/generate-overview', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          businessUrl: step1Data.businessUrl,
+          aiSummary: step1Data.aiSummary,
+          userDescription: step1Data.userDescription
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to generate overview')
+      }
+
+      const overviewData = await response.json()
+      
+      // Store the overview data
+      localStorage.setItem('overview', JSON.stringify(overviewData))
+      localStorage.setItem('overviewBusinessUrl', step1Data.businessUrl)
+
+      // Navigate to step 4
+      router.push('/step-4')
+    } catch (error) {
+      console.error('Error generating overview:', error)
+      setError(error instanceof Error ? error.message : 'Failed to generate overview')
+    }
   }
 
   return (

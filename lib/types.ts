@@ -45,6 +45,26 @@ export interface TeamDetails {
 }
 
 // Business Overview (Step 3)
+export interface QuickWin {
+  description: string;
+  estimatedTimeSavedPerWeek: string;
+  roiPotential: string;
+  implementationComplexity: 'Low' | 'Medium' | 'High';
+}
+
+export interface LongTermOpportunity {
+  description: string;
+  timeHorizon: string;
+  roiPotential: string;
+  strategicValue: 'High' | 'Very High' | 'Transformative';
+}
+
+export interface IndustryTrend {
+  trend: string;
+  impact: string;
+  adoptionRate: string;
+}
+
 export interface BusinessOverview {
   keyChallenges: string[];
   strengths: string[];
@@ -53,6 +73,9 @@ export interface BusinessOverview {
   timeline: Record<string, string[]>;
   trainingNeeds: string[];
   complianceAndSecurity: string;
+  quickWins: QuickWin[];
+  longTermOpportunities: LongTermOpportunity[];
+  industryTrends: IndustryTrend[];
 }
 
 // Audit Answers

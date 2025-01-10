@@ -30,18 +30,72 @@ export const GenerateOverviewRequestSchema = z.object({
 });
 
 export const BusinessOverviewSchema = z.object({
-  businessOverview: z.string().min(1, 'Business overview is required'),
-  keyChallenges: z.array(z.string()),
-  strengths: z.array(z.string()),
-  integrationOpportunities: z.array(z.string()),
-  implementationConsiderations: z.array(z.string()),
-  timeline: z.object({
-    phase1_assessment: z.string(),
-    phase2_implementation: z.string(),
-    phase3_expansion: z.string()
+  businessOverview: z.object({
+    summary: z.string().min(1, 'Business summary is required'),
+    vision: z.string().min(1, 'AI vision statement is required'),
+    objectives: z.array(z.string())
   }),
-  trainingNeeds: z.array(z.string()),
-  complianceAndSecurity: z.array(z.string())
+  keyChallenges: z.array(z.object({
+    challenge: z.string(),
+    impact: z.string(),
+    priority: z.enum(['High', 'Medium', 'Low'])
+  })),
+  strengths: z.array(z.object({
+    area: z.string(),
+    description: z.string(),
+    leverageOpportunity: z.string()
+  })),
+  integrationOpportunities: z.array(z.object({
+    area: z.string(),
+    description: z.string(),
+    benefit: z.string(),
+    prerequisite: z.string()
+  })),
+  implementationConsiderations: z.array(z.object({
+    category: z.string(),
+    points: z.array(z.string()),
+    risksAndMitigation: z.array(z.string())
+  })),
+  timeline: z.object({
+    phase1_assessment: z.object({
+      duration: z.string(),
+      activities: z.array(z.string()),
+      deliverables: z.array(z.string())
+    }),
+    phase2_implementation: z.object({
+      duration: z.string(),
+      activities: z.array(z.string()),
+      deliverables: z.array(z.string())
+    }),
+    phase3_expansion: z.object({
+      duration: z.string(),
+      activities: z.array(z.string()),
+      deliverables: z.array(z.string())
+    })
+  }),
+  quickWins: z.array(z.object({
+    title: z.string(),
+    description: z.string(),
+    estimatedTimeSavedPerWeek: z.string(),
+    roiPotential: z.string(),
+    implementationComplexity: z.enum(['Low', 'Medium', 'High']),
+    steps: z.array(z.string())
+  })),
+  longTermOpportunities: z.array(z.object({
+    title: z.string(),
+    description: z.string(),
+    timeHorizon: z.string(),
+    roiPotential: z.string(),
+    strategicValue: z.enum(['High', 'Very High', 'Transformative']),
+    keyMilestones: z.array(z.string())
+  })),
+  industryTrends: z.array(z.object({
+    trend: z.string(),
+    impact: z.string(),
+    adoptionRate: z.string(),
+    relevance: z.string(),
+    recommendations: z.array(z.string())
+  }))
 });
 
 export const GenerateDocumentSchema = z.object({

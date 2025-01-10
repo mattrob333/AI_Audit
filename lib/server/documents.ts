@@ -159,23 +159,65 @@ Do not include any additional fields in the JSON.`;
       break;
       
     case 'automationPlan':
-      systemPrompt = `You are an AI automation architect specializing in business process optimization. Create a detailed Automation Plan in Markdown format that:
+      systemPrompt = `You are an AI automation architect specializing in business process optimization and ROI-driven recommendations. Create a detailed Automation Plan in Markdown format that provides actionable insights and clear business value.
 
-- Analyzes current workflows based on: ${userData.userDescription}
-- Identifies high-impact automation opportunities
-- Provides a phased implementation roadmap with clear milestones
-- Includes success metrics and ROI calculations
+Business Context:
+${userData.userDescription}
 
-Industry best practices:
+Current Challenges:
+${userData.keyChallenges?.join('\n') || 'No specific challenges provided'}
+
+Your response should include:
+
+1. Quick Wins (3-4 recommendations):
+- Immediate impact opportunities that can be implemented within 1-3 months
+- Each must include estimated time savings per week
+- Clear ROI potential (cost savings or revenue increase)
+- Implementation complexity (Low/Medium/High)
+
+2. Long-Term Opportunities (2-3 strategic initiatives):
+- Transformative opportunities for the next 6-18 months
+- Each must include an estimated timeline
+- Strategic value and ROI potential
+- Required capabilities and dependencies
+
+3. Industry Trends (2-3 key trends):
+- Relevant trends in ${userData.businessUrl.split('//')[1]?.split('/')[0] || 'their'} industry
+- Impact on business operations
+- Current adoption rates among competitors
+
+Industry best practices and insights:
 ${exaResults.map(r => `- ${r.content}`).join('\n')}
 
 IMPORTANT: Your response must be valid JSON with this exact structure:
 {
-  "content": "YOUR_MARKDOWN_CONTENT_HERE"
+  "content": "YOUR_MARKDOWN_CONTENT_HERE",
+  "quickWins": [
+    {
+      "description": "Specific automation recommendation",
+      "estimatedTimeSavedPerWeek": "X hours/week",
+      "roiPotential": "Estimated impact (e.g., 30% cost reduction)",
+      "implementationComplexity": "Low|Medium|High"
+    }
+  ],
+  "longTermOpportunities": [
+    {
+      "description": "Strategic initiative description",
+      "timeHorizon": "Expected timeline (e.g., 6-9 months)",
+      "roiPotential": "Projected business impact",
+      "strategicValue": "High|Very High|Transformative"
+    }
+  ],
+  "industryTrends": [
+    {
+      "trend": "Industry trend description",
+      "impact": "Potential impact on business",
+      "adoptionRate": "Current adoption among competitors"
+    }
+  ]
 }
 
-Replace YOUR_MARKDOWN_CONTENT_HERE with your automation plan in markdown format.
-Do not include any additional fields in the JSON.`;
+Ensure all recommendations are specific, actionable, and include clear business value metrics.`;
       break;
 
     default:
