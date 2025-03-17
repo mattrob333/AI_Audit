@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { Toaster } from '@/components/ui/toaster'
+import { AppLayout } from '@/components/app-layout'
 import './globals.css'
 import './prose.css'
 import { cn } from '@/lib/utils'
@@ -25,7 +26,9 @@ export default function RootLayout({
         'min-h-screen bg-black text-neutral-200'
       )}>
         <TooltipProvider>
-          {children}
+          <AppLayout>
+            {children}
+          </AppLayout>
           <Toaster />
         </TooltipProvider>
       </body>

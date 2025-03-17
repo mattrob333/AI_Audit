@@ -8,7 +8,8 @@ import {
   FolderIcon, 
   UsersIcon, 
   FileTextIcon,
-  BuildingIcon 
+  BuildingIcon,
+  NetworkIcon 
 } from 'lucide-react'
 
 interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {}
@@ -41,6 +42,11 @@ export function Sidebar({ className, ...props }: SidebarProps) {
       title: "Company",
       icon: BuildingIcon,
       href: "/company"
+    },
+    {
+      title: "Org Chart",
+      icon: NetworkIcon,
+      href: "/org-chart"
     }
   ]
 

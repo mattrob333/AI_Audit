@@ -1,4 +1,5 @@
 import OpenAI from 'openai';
+import { StreamingTextResponse } from 'ai';
 
 let openaiClient: OpenAI | null = null;
 
@@ -182,4 +183,28 @@ export async function transcribeAudio(audioBlob: Blob) {
     console.error('Error transcribing audio:', error);
     throw error;
   }
+}
+
+export const runtime = 'edge';
+
+export async function OpenAIStreamingResponse(messages: any[]) {
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error('Missing OPENAI_API_KEY environment variable');
+  }
+
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: 'gpt-4',
+      stream: true,
+      messages,
+    }),
+  });
+
+  const stream = response.body.getReader();
+  return new StreamingTextResponse(stream);
 }
