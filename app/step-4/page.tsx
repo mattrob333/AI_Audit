@@ -8,7 +8,6 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { CollapsibleSection } from '@/components/ui/collapsible-section'
 import { ArrowRight } from 'lucide-react'
-import { Sidebar } from '@/components/sidebar'
 import { HelpPanel } from '@/components/help-panel'
 import { QuickWinCard } from '@/components/quick-win-card'
 import { LongTermCard } from '@/components/long-term-card'
@@ -283,9 +282,8 @@ export default function Step4Page() {
 
   return (
     <div className="flex min-h-screen bg-black">
-      <Sidebar className="fixed left-0 top-0 h-full w-64" />
-      
-      <main className="flex-1 pl-64">
+
+      <main className="flex-1">
         <div className="sticky top-0 z-40 border-b border-neutral-800 bg-black/95 backdrop-blur supports-[backdrop-filter]:bg-black/80">
           <ProgressSteps currentStep={4} />
         </div>
